@@ -1,5 +1,5 @@
 <?php
-
+//app/Models/User.php
 namespace App\Models;
 
 use Carbon\Carbon;
@@ -36,6 +36,7 @@ class User extends Authenticatable
         'email_verified_at',
         'password',
         'remember_token',
+         'login_token',
         'salaire',
         'station_id',
         'created_at',

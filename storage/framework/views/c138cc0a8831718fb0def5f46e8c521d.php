@@ -78,6 +78,29 @@
 
                         </td>
                     </tr>
+                    <tr>
+    <th>
+    <?php echo e(trans('cruds.user.fields.qr_code')); ?>
+
+</th>
+<td>
+    <?php if(Storage::disk('public')->exists("qrcodes/{$user->id}.png")): ?>
+        <img src="<?php echo e(asset("storage/qrcodes/{$user->id}.png")); ?>" alt="QR Code de <?php echo e($user->name); ?>" width="200">
+        <p class="mt-2">
+            <a href="<?php echo e(asset("storage/qrcodes/{$user->id}.png")); ?>" class="btn btn-sm btn-success" download>
+                <?php echo e(trans('cruds.user.fields.qr_code_download')); ?>
+
+            </a>
+        </p>
+    <?php else: ?>
+        <span class="text-danger">
+            <?php echo e(trans('cruds.user.fields.qr_code_missing')); ?>
+
+        </span>
+    <?php endif; ?>
+</td>
+</tr>
+
                 </tbody>
             </table>
             <div class="form-group">

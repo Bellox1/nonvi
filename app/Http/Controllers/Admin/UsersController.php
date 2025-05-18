@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
@@ -13,7 +12,13 @@ use App\Models\AuditLog;
 use Gate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
+
+use Endroid\QrCode\Builder\Builder;
+use Endroid\QrCode\Writer\PngWriter;
+
 
 class UsersController extends Controller
 {
@@ -38,10 +43,13 @@ class UsersController extends Controller
 
     public function store(StoreUserRequest $request)
     {
-        $user = User::create($request->all());
+        $data = $request->all();
+        $data['login_token'] = Str::random(60);
+        $user = User::create($data);
         $user->roles()->sync($request->input('roles', []));
 
-        // Log d'audit
+        $this->generateQrCode($user);
+
         AuditLog::create([
             'description' => 'create',
             'subject_id' => $user->id,
@@ -69,10 +77,17 @@ class UsersController extends Controller
 
     public function update(UpdateUserRequest $request, User $user)
     {
-        $user->update($request->all());
+        $data = $request->all();
+
+        if (!$user->login_token) {
+            $data['login_token'] = Str::random(60);
+        }
+
+        $user->update($data);
         $user->roles()->sync($request->input('roles', []));
 
-        // Log d'audit
+        $this->generateQrCode($user);
+
         AuditLog::create([
             'description' => 'update',
             'subject_id' => $user->id,
@@ -92,18 +107,24 @@ class UsersController extends Controller
 
         $user->load('roles', 'station');
 
-        return view('admin.users.show', compact('user'));
+        $loginLink = url("/admin/{$user->name}/{$user->id}/{$user->login_token}");
+        $qrCodePath = Storage::disk('public')->exists("qrcodes/{$user->id}.png")
+            ? asset("storage/qrcodes/{$user->id}.png")
+            : null;
+
+        return view('admin.users.show', compact('user', 'loginLink', 'qrCodePath'));
     }
 
     public function destroy(User $user)
     {
         abort_if(Gate::denies('user_delete'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
+        $this->deleteQrCode($user->id);
+
         $userId = $user->id;
         $userData = $user->toArray();
         $user->delete();
 
-        // Log d'audit
         AuditLog::create([
             'description' => 'delete',
             'subject_id' => $userId,
@@ -122,13 +143,14 @@ class UsersController extends Controller
         $users = User::find(request('ids'));
 
         foreach ($users as $user) {
+            $this->deleteQrCode($user->id);
+
             $userId = $user->id;
             $userData = $user->toArray();
             $user->delete();
 
-            // Log d'audit pour chaque suppression
             AuditLog::create([
-               'description'   => 'mass_delete',
+                'description' => 'mass_delete',
                 'subject_id' => $userId,
                 'subject_type' => User::class,
                 'user_id' => Auth::id(),
@@ -139,5 +161,34 @@ class UsersController extends Controller
         }
 
         return response(null, Response::HTTP_NO_CONTENT);
+    }
+
+private function generateQrCode(User $user)
+{
+    if (!$user->login_token) {
+        $user->login_token = Str::random(60);
+        $user->save();
+    }
+
+    $link = url("/admin/{$user->name}/{$user->id}/{$user->login_token}");
+    $path = storage_path("app/public/qrcodes/{$user->id}.png");
+
+    $result = Builder::create()
+        ->writer(new PngWriter())
+        ->data($link)
+        ->size(300)
+        ->margin(10)
+        ->build();
+
+    // Enregistrer le fichier
+    $result->saveToFile($path);
+}
+    private function deleteQrCode($userId)
+    {
+        $filename = "qrcodes/{$userId}.png";
+
+        if (Storage::disk('public')->exists($filename)) {
+            Storage::disk('public')->delete($filename);
+        }
     }
 }

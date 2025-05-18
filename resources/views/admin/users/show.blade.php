@@ -65,6 +65,26 @@
                             {{ $user->salaire }}
                         </td>
                     </tr>
+                    <tr>
+    <th>
+    {{ trans('cruds.user.fields.qr_code') }}
+</th>
+<td>
+    @if(Storage::disk('public')->exists("qrcodes/{$user->id}.png"))
+        <img src="{{ asset("storage/qrcodes/{$user->id}.png") }}" alt="QR Code de {{ $user->name }}" width="200">
+        <p class="mt-2">
+            <a href="{{ asset("storage/qrcodes/{$user->id}.png") }}" class="btn btn-sm btn-success" download>
+                {{ trans('cruds.user.fields.qr_code_download') }}
+            </a>
+        </p>
+    @else
+        <span class="text-danger">
+            {{ trans('cruds.user.fields.qr_code_missing') }}
+        </span>
+    @endif
+</td>
+</tr>
+
                 </tbody>
             </table>
             <div class="form-group">

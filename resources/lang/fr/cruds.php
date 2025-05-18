@@ -67,6 +67,10 @@ return [
             'salaire_helper'           => ' ',
             'station'                  => 'Station',
             'station_helper'           => ' ',
+            'qr_code' => 'QR Code',
+            'qr_code_helper' => '',
+            'qr_code_download' => 'Télécharger QR Code',
+            'qr_code_missing' => 'QR code non généré.',
         ],
     ],
    'client' => [
