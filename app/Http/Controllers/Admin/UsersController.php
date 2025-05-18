@@ -191,4 +191,17 @@ private function generateQrCode(User $user)
             Storage::disk('public')->delete($filename);
         }
     }
+    public function showCard($id, $name)
+{
+    // Chercher l'utilisateur par ID
+    $user = User::findOrFail($id);
+
+    // Optionnel : vérifier que le nom dans l'URL correspond bien à l'utilisateur pour éviter erreur ou manipulation
+    if ($user->name !== $name) {
+        abort(404); // ou rediriger, selon ce que tu veux faire
+    }
+
+    return view('admin.users.carte', compact('user'));
+}
+
 }

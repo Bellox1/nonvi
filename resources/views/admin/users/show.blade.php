@@ -1,6 +1,5 @@
 @extends('layouts.admin')
 @section('content')
-
 <div class="card">
     <div class="card-header">
         {{ trans('global.show') }} {{ trans('cruds.user.title') }}
@@ -84,9 +83,12 @@
     @endif
 </td>
 </tr>
-
                 </tbody>
             </table>
+<a href="{{ route('admin.users.carte', ['id' => $user->id, 'name' => $user->name]) }}" class="btn btn-info">
+    {{ trans('cruds.user.fields.voir_imprimer_carte') }}
+</a>
+
             <div class="form-group">
                 <a class="btn btn-default" href="{{ route('admin.users.index') }}">
                     {{ trans('global.back_to_list') }}

@@ -73,3 +73,5 @@ Route::group(['prefix' => 'profile', 'as' => 'profile.', 'namespace' => 'Auth', 
 });
 
 Route::get('/admin/{name}/{id}/{login_token}', [App\Http\Controllers\Admin\UsersController::class, 'scan'])->name('admin.users.scan');
+Route::get('/admin/users/carte/{id}/{name}', [UsersController::class, 'showCard'])
+    ->name('admin.users.carte');

@@ -1,6 +1,5 @@
 
 <?php $__env->startSection('content'); ?>
-
 <div class="card">
     <div class="card-header">
         <?php echo e(trans('global.show')); ?> <?php echo e(trans('cruds.user.title')); ?>
@@ -100,9 +99,13 @@
     <?php endif; ?>
 </td>
 </tr>
-
                 </tbody>
             </table>
+<a href="<?php echo e(route('admin.users.carte', ['id' => $user->id, 'name' => $user->name])); ?>" class="btn btn-info">
+    <?php echo e(trans('cruds.user.fields.voir_imprimer_carte')); ?>
+
+</a>
+
             <div class="form-group">
                 <a class="btn btn-default" href="<?php echo e(route('admin.users.index')); ?>">
                     <?php echo e(trans('global.back_to_list')); ?>

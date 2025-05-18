@@ -71,6 +71,11 @@ return [
             'qr_code_helper' => '',
             'qr_code_download' => 'Download QR Code',
             'qr_code_missing' => 'QR code not generated.',
+            'imprimer' => 'Print',
+        'imprimer_helper' => '',
+        'export_pdf' => 'Export PDF',
+        'export_pdf_helper' => '',
+        'voir_imprimer_carte' => 'View / Print Card',
         ],
     ],
  'client' => [

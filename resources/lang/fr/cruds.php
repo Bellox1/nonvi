@@ -60,7 +60,7 @@ return [
             'created_at'               => 'Créé le',
             'created_at_helper'        => ' ',
             'updated_at'               => 'Mis à jour le',
-            'updated_at_helper'        => ' ',
+            'updated_at_helper'        => ' ', 
             'deleted_at'               => 'Supprimé le',
             'deleted_at_helper'        => ' ',
             'salaire'                  => 'Salaire',
@@ -71,6 +71,12 @@ return [
             'qr_code_helper' => '',
             'qr_code_download' => 'Télécharger QR Code',
             'qr_code_missing' => 'QR code non généré.',
+            'imprimer' => 'Imprimer',
+ 'imprimer_helper' => '',
+ 'exporter_pdf' => 'Exporter en PDF',
+ 'exporter_pdf_helper' => '',
+'voir_imprimer_carte' => 'Voir / Imprimer la carte',
+
         ],
     ],
    'client' => [
