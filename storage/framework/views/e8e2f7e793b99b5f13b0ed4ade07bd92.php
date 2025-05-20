@@ -382,7 +382,8 @@ main {
 
 header {
   font-size: 2.5rem;
-  font-weight: bold;
+  font-weight: red;
+  color:rgb(233, 17, 17);
   margin-bottom: 8px; /* petit espace au-dessus du SVG */
 }
 
@@ -399,13 +400,13 @@ footer {
 footer a {
   display: inline-block;
   margin-top: 4px;
-  text-decoration: none;
+  text-decoration: none; /* Pas de soulignement */
   color: #4B22B5;
   font-weight: 600;
 }
 
 footer a:hover {
-  text-decoration: underline;
+  text-decoration: none; /* On garde ça aussi à none */
 }
 
     #svg-global {
