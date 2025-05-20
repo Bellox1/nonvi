@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Erreur 404 - Nonvi</title>
+  <title>404 Erreur - Nonvi</title>
 <body>
   <main>
     <header>Erreur 404</header>
@@ -350,7 +350,7 @@
 
  <footer>
   <div>Page introuvable</div>
-  <a href="<?php echo e(route('login')); ?>">← Retour à l’accueil</a>
+<a href="<?php echo e(url('/')); ?>">← Connexion/Tableau de bord</a>
 </footer>
 
   </main>

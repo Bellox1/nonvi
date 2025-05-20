@@ -1,6 +1,5 @@
 
 <?php $__env->startSection('content'); ?>
-
 <div class="card">
     <div class="card-header">
         <?php echo e(trans('global.create')); ?> <?php echo e(trans('cruds.user.title_singular')); ?>
@@ -17,7 +16,7 @@
                     <div class="invalid-feedback">
                         <?php echo e($errors->first('name')); ?>
 
-                    </div>
+                 </div>
                 <?php endif; ?>
                 <span class="help-block"><?php echo e(trans('cruds.user.fields.name_helper')); ?></span>
             </div>
