@@ -1,4 +1,5 @@
 <?php
+//resources/lang/fr/auditlog.php
 return [
     'create'      => 'Création',
     'update'      => 'Modification',

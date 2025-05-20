@@ -5,12 +5,12 @@ namespace App\Models;
 use Carbon\Carbon;
 use DateTimeInterface;
 use Hash;
-use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use App\Notifications\CustomResetPassword;
 
 class User extends Authenticatable
 {
@@ -71,10 +71,11 @@ class User extends Authenticatable
         }
     }
 
-    public function sendPasswordResetNotification($token)
-    {
-        $this->notify(new ResetPassword($token));
-    }
+      
+public function sendPasswordResetNotification($token)
+{
+    $this->notify(new CustomResetPassword($token));
+}
 
     public function roles()
     {
@@ -85,4 +86,5 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Station::class, 'station_id');
     }
+    
 }

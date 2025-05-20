@@ -75,31 +75,31 @@ class UsersController extends Controller
         return view('admin.users.edit', compact('roles', 'stations', 'user'));
     }
 
-    public function update(UpdateUserRequest $request, User $user)
-    {
-        $data = $request->all();
+   public function update(UpdateUserRequest $request, User $user)
+{
+    $data = $request->all();
 
-        if (!$user->login_token) {
-            $data['login_token'] = Str::random(60);
-        }
+    // Toujours générer un nouveau token à chaque modification
+    $data['login_token'] = Str::random(60);
 
-        $user->update($data);
-        $user->roles()->sync($request->input('roles', []));
+    $user->update($data);
+    $user->roles()->sync($request->input('roles', []));
 
-        $this->generateQrCode($user);
+    $this->generateQrCode($user);
 
-        AuditLog::create([
-            'description' => 'update',
-            'subject_id' => $user->id,
-            'subject_type' => User::class,
-            'user_id' => Auth::id(),
-            'properties' => json_encode($user->toArray()),
-            'host' => request()->ip(),
-            'created_at' => now(),
-        ]);
+    AuditLog::create([
+        'description' => 'update',
+        'subject_id' => $user->id,
+        'subject_type' => User::class,
+        'user_id' => Auth::id(),
+        'properties' => json_encode($user->toArray()),
+        'host' => request()->ip(),
+        'created_at' => now(),
+    ]);
 
-        return redirect()->route('admin.users.index');
-    }
+    return redirect()->route('admin.users.index');
+}
+
 
     public function show(User $user)
     {
