@@ -65,4 +65,4 @@
     }
     });
 </script>
-<?php /**PATH C:\Users\hp EliteBook 840 G5\Desktop\nonvi\vendor\laraveldaily\laravel-charts\src/views/javascript.blade.php ENDPATH**/ ?>
+<?php /**PATH C:\Users\hp EliteBook 840 G5\Desktop\TOUT\nonvi\vendor\laraveldaily\laravel-charts\src/views/javascript.blade.php ENDPATH**/ ?>

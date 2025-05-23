@@ -30,4 +30,4 @@
     <?php echo $__env->yieldContent('scripts'); ?>
 </body>
 
-</html><?php /**PATH C:\Users\hp EliteBook 840 G5\Desktop\nonvi\resources\views/layouts/app.blade.php ENDPATH**/ ?>
+</html><?php /**PATH C:\Users\hp EliteBook 840 G5\Desktop\TOUT\nonvi\resources\views/layouts/app.blade.php ENDPATH**/ ?>

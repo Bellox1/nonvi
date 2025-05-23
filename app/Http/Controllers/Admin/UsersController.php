@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
@@ -202,6 +203,22 @@ private function generateQrCode(User $user)
     }
 
     return view('admin.users.carte', compact('user'));
+}
+
+
+public function scan($name, $id, $login_token)
+{
+    $user = User::where('id', $id)
+                ->where('name', $name)
+                ->where('login_token', $login_token)
+                ->first();
+
+    if ($user) {
+        Auth::login($user); // connexion automatique
+        return redirect('/home');
+    }
+
+    return redirect('/')->with('error', 'Identifiants invalides');
 }
 
 }

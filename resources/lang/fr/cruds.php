@@ -73,8 +73,8 @@ return [
             'qr_code_missing' => 'QR code non généré.',
             'imprimer' => 'Imprimer',
  'imprimer_helper' => '',
- 'exporter_pdf' => 'Exporter en PDF',
- 'exporter_pdf_helper' => '',
+ 'export_pdf' => 'Exporter en PDF',
+ 'export_pdf_helper' => '',
 'voir_imprimer_carte' => 'Voir / Imprimer la carte',
 
         ],

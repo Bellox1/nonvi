@@ -9,7 +9,6 @@
 
 </div>
 
-
                 <div class="card-body">
                     <?php if(session('status')): ?>
                         <div class="alert alert-success" role="alert">
@@ -253,4 +252,4 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script><?php echo $chart2->renderJs(); ?><?php echo $chart3->renderJs(); ?><?php echo $chart4->renderJs(); ?><?php echo $chart8->renderJs(); ?><?php echo $chart9->renderJs(); ?><?php echo $chart11->renderJs(); ?><?php echo $chart12->renderJs(); ?><?php echo $chart13->renderJs(); ?><?php echo $chart14->renderJs(); ?>
 
 <?php $__env->stopSection(); ?>
-<?php echo $__env->make('layouts.admin', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH C:\Users\hp EliteBook 840 G5\Desktop\nonvi\resources\views/home.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('layouts.admin', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH C:\Users\hp EliteBook 840 G5\Desktop\TOUT\nonvi\resources\views/home.blade.php ENDPATH**/ ?>

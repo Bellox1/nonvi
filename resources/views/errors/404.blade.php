@@ -350,7 +350,7 @@
 
  <footer>
   <div>Page introuvable</div>
-<a href="{{ url('/') }}">← Connexion/Tableau de bord</a>
+<a href="{{ url('/') }}">← Connexion</a>
 </footer>
 
   </main>

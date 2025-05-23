@@ -1,5 +1,6 @@
 <?php
-//app/Models/User.php
+// app/Models/User.php
+
 namespace App\Models;
 
 use Carbon\Carbon;
@@ -28,6 +29,7 @@ class User extends Authenticatable
         'created_at',
         'updated_at',
         'deleted_at',
+        'qr_status_updated_at', // ajout ici
     ];
 
     protected $fillable = [
@@ -36,12 +38,18 @@ class User extends Authenticatable
         'email_verified_at',
         'password',
         'remember_token',
-         'login_token',
+        'login_token',
+        'qr_status',
+        'qr_status_updated_at',
         'salaire',
         'station_id',
         'created_at',
         'updated_at',
         'deleted_at',
+    ];
+
+    protected $casts = [
+        'qr_status_updated_at' => 'datetime', // ajout ici
     ];
 
     protected function serializeDate(DateTimeInterface $date)
@@ -61,7 +69,9 @@ class User extends Authenticatable
 
     public function setEmailVerifiedAtAttribute($value)
     {
-        $this->attributes['email_verified_at'] = $value ? Carbon::createFromFormat(config('panel.date_format') . ' ' . config('panel.time_format'), $value)->format('Y-m-d H:i:s') : null;
+        $this->attributes['email_verified_at'] = $value
+            ? Carbon::createFromFormat(config('panel.date_format') . ' ' . config('panel.time_format'), $value)->format('Y-m-d H:i:s')
+            : null;
     }
 
     public function setPasswordAttribute($input)
@@ -71,11 +81,10 @@ class User extends Authenticatable
         }
     }
 
-      
-public function sendPasswordResetNotification($token)
-{
-    $this->notify(new CustomResetPassword($token));
-}
+    public function sendPasswordResetNotification($token)
+    {
+        $this->notify(new CustomResetPassword($token));
+    }
 
     public function roles()
     {
@@ -86,5 +95,4 @@ public function sendPasswordResetNotification($token)
     {
         return $this->belongsTo(Station::class, 'station_id');
     }
-    
 }

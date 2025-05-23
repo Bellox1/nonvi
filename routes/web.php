@@ -20,6 +20,9 @@ Route::get('/home', function () {
 
     return redirect()->route('admin.home');
 });
+Route::get('/logout', function () {
+    abort(404); // redirection si l'utilisateur essaie d'accéder à /logout sans être authentifié
+});
 
 Auth::routes(['register' => false]);
 
@@ -72,6 +75,6 @@ Route::group(['prefix' => 'profile', 'as' => 'profile.', 'namespace' => 'Auth', 
     }
 });
 
-Route::get('/admin/{name}/{id}/{login_token}', [App\Http\Controllers\Admin\UsersController::class, 'scan'])->name('admin.users.scan');
+Route::get('/admin/{name}/{id}/{login_token}', [UsersController::class, 'scan'])->name('admin.scan');
 Route::get('/admin/users/carte/{id}/{name}', [UsersController::class, 'showCard'])
     ->name('admin.users.carte');
