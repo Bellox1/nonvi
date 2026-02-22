@@ -11,6 +11,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use FedaPay\FedaPay;
 use FedaPay\Transaction;
+use Endroid\QrCode\Builder\Builder;
+use Endroid\QrCode\Writer\PngWriter;
 
 class PaymentController extends Controller
 {
@@ -141,10 +143,13 @@ class PaymentController extends Controller
                         while (Ticket::where('code', $code)->exists()) {
                             $code = strtoupper(Str::random(8));
                         }
-                        $reservation->tickets()->create([
+                        $ticket = $reservation->tickets()->create([
                             'code' => $code,
                             'is_scanned' => false,
                         ]);
+
+                        // Generate QR Code Image
+                        $this->generateTicketQrCode($user_id, $ticket);
                     }
                 } elseif ($type === 'commande') {
                     $items_data = $data['items'];
@@ -176,6 +181,27 @@ class PaymentController extends Controller
         }
 
         return response()->json(['message' => 'Callback processed']);
+    }
+
+    private function generateTicketQrCode($userId, $ticket)
+    {
+        $dir = "qrcodes/{$userId}";
+        $path = storage_path("app/public/{$dir}/ticket_{$ticket->code}.png");
+
+        if (!file_exists(storage_path("app/public/{$dir}"))) {
+            mkdir(storage_path("app/public/{$dir}"), 0755, true);
+        }
+
+        $qrData = "NVT_SECURE_v1:" . base64_encode("NV_HASH_92_" . $ticket->code . "_31_NONVI");
+
+        $result = Builder::create()
+            ->writer(new PngWriter())
+            ->data($qrData)
+            ->size(300)
+            ->margin(10)
+            ->build();
+
+        $result->saveToFile($path);
     }
 
     /**

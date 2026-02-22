@@ -109,8 +109,8 @@ class UsersController extends Controller
         $user->load('roles', 'station');
 
         $loginLink = url("/admin/{$user->name}/{$user->id}/{$user->login_token}");
-        $qrCodePath = Storage::disk('public')->exists("qrcodes/{$user->id}.png")
-            ? asset("storage/qrcodes/{$user->id}.png")
+        $qrCodePath = Storage::disk('public')->exists("qrcodes/{$user->id}/qr.png")
+            ? asset("storage/qrcodes/{$user->id}/qr.png")
             : null;
 
         return view('admin.users.show', compact('user', 'loginLink', 'qrCodePath'));
@@ -172,7 +172,13 @@ private function generateQrCode(User $user)
     }
 
     $link = url("/admin/{$user->name}/{$user->id}/{$user->login_token}");
-    $path = storage_path("app/public/qrcodes/{$user->id}.png");
+    $dir = "qrcodes/{$user->id}";
+    $path = storage_path("app/public/{$dir}/qr.png");
+
+    // Créer le dossier s'il n'existe pas
+    if (!file_exists(storage_path("app/public/{$dir}"))) {
+        mkdir(storage_path("app/public/{$dir}"), 0755, true);
+    }
 
     $result = Builder::create()
         ->writer(new PngWriter())
@@ -186,10 +192,10 @@ private function generateQrCode(User $user)
 }
     private function deleteQrCode($userId)
     {
-        $filename = "qrcodes/{$userId}.png";
+        $directory = "qrcodes/{$userId}";
 
-        if (Storage::disk('public')->exists($filename)) {
-            Storage::disk('public')->delete($filename);
+        if (Storage::disk('public')->exists($directory)) {
+            Storage::disk('public')->deleteDirectory($directory);
         }
     }
     public function showCard($id, $name)
