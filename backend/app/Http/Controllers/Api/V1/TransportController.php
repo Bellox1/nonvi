@@ -35,7 +35,7 @@ class TransportController extends Controller
             'station_depart_id' => 'required|exists:stations,id',
             'station_arrivee_id' => 'required|exists:stations,id',
             'date_depart' => 'required|date',
-            'heure_depart' => 'required',
+            'heure_depart' => ['required', 'regex:/^((0[0-9]|1[0-9]|20):[0-5][0-9]|21:(0[0-9]|1[0-9]|2[0-9]|30))$/'],
             'nombre_tickets' => 'required|integer|min:1',
             'moyen_paiement' => 'required',
         ]);

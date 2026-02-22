@@ -35,7 +35,14 @@ const TransportScreen = ({ navigation }) => {
     const [pickerVisible, setPickerVisible] = useState(false);
     const [pickerType, setPickerType] = useState('');
 
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+    const getLocalDateString = (date = new Date()) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    const [selectedDate, setSelectedDate] = useState(getLocalDateString());
     const [selectedTime, setSelectedTime] = useState('');
 
     const fetchStations = async () => {
@@ -71,6 +78,11 @@ const TransportScreen = ({ navigation }) => {
     const handleOrder = async () => {
         if (startStation === endStation) {
             showToast('Le départ et l\'arrivée doivent être différents', 'error');
+            return;
+        }
+
+        if (!selectedTime) {
+            showToast('Veuillez choisir une heure de départ', 'error');
             return;
         }
 
@@ -149,15 +161,15 @@ const TransportScreen = ({ navigation }) => {
         for (let i = 0; i < 7; i++) {
             const date = new Date(); date.setDate(today.getDate() + i);
             const dayStr = date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
-            dates.push({ id: i.toString(), label: i === 0 ? `Aujourd'hui ${dayStr}` : i === 1 ? `Demain ${dayStr}` : date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }), value: date.toISOString().split('T')[0] });
+            dates.push({ id: i.toString(), label: i === 0 ? `Aujourd'hui ${dayStr}` : i === 1 ? `Demain ${dayStr}` : date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }), value: getLocalDateString(date) });
         }
         return dates;
     };
 
     const getAvailableTimes = (date) => {
         const times = [];
-        const isToday = date === new Date().toISOString().split('T')[0];
-        let h = 6, m = 0;
+        const isToday = date === getLocalDateString();
+        let h = 0, m = 0;
         if (isToday) {
             const now = new Date(); h = now.getHours(); m = now.getMinutes() + (15 - (now.getMinutes() % 15));
             if (m >= 60) { m = 0; h += 1; }

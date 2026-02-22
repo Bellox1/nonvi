@@ -44,7 +44,7 @@ class AuthController extends Controller
             $user->update(['verification_code' => $otp]);
         }
 
-        \Log::info("Tentative d'envoi OTP vers : " . $request->tel . " via " . $request->type);
+        \Log::info("Tentative d'envoi OTP [$otp] vers : " . $request->tel . " via " . $request->type);
 
         if ($request->type === 'whatsapp') {
             $this->twilio->sendWhatsApp($request->tel, $message);
@@ -133,7 +133,12 @@ class AuthController extends Controller
             'tel' => 'required|string|max:20|unique:users,tel,' . $user->id,
             'email' => 'nullable|string|email|max:255|unique:users,email,' . $user->id,
             'password' => ['nullable', 'confirmed', Password::min(8)->mixedCase()->numbers()->symbols()],
+            'otp' => 'required|string|size:4'
         ]);
+
+        if (!$this->verifyOtp($request->tel, $request->otp)) {
+            throw ValidationException::withMessages(['otp' => 'Code de vérification invalide.']);
+        }
 
         return DB::transaction(function () use ($request, $user) {
             $user->name = $request->name;
@@ -159,7 +164,14 @@ class AuthController extends Controller
     {
         $request->validate([
             'password' => 'required|string',
+            'otp' => 'required|string|size:4'
         ]);
+
+        $user = $request->user();
+
+        if (!$this->verifyOtp($user->tel, $request->otp)) {
+            throw ValidationException::withMessages(['otp' => 'Code de vérification invalide.']);
+        }
 
         $user = $request->user();
 
@@ -229,5 +241,23 @@ class AuthController extends Controller
         \Cache::forget('otp_reset_' . $request->tel);
 
         return response()->json(['message' => 'Mot de passe réinitialisé avec succès']);
+    }
+    private function verifyOtp($tel, $otp)
+    {
+        // 1. Check in Cache (used for registration or if user not found during sendOtp)
+        $cachedOtp = \Cache::get('otp_' . $tel);
+        if ($cachedOtp && $cachedOtp == $otp) {
+            \Cache::forget('otp_' . $tel);
+            return true;
+        }
+
+        // 2. Check in User model (used for existing users)
+        $user = User::where('tel', $tel)->first();
+        if ($user && $user->verification_code && $user->verification_code == $otp) {
+            $user->update(['verification_code' => null]);
+            return true;
+        }
+
+        return false;
     }
 }

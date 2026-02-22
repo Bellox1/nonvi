@@ -37,6 +37,15 @@ const ProfileScreen = ({ navigation }) => {
     const [loadingSecurity, setLoadingSecurity] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
 
+    // Profile Update OTP states
+    const [showVerificationModal, setShowVerificationModal] = useState(false);
+    const [otpStep, setOtpStep] = useState(1); // 1: Choice, 2: Verification
+    const [otpLoadingType, setOtpLoadingType] = useState(null); // 'whatsapp' or 'sms'
+    const [otpArray, setOtpArray] = useState(['', '', '', '']);
+    const [focusedIndex, setFocusedIndex] = useState(0);
+    const otpInputs = React.useRef([]);
+    const [pendingUpdateData, setPendingUpdateData] = useState(null);
+
     // Sync local state when global user changes
     React.useEffect(() => {
         if (user) {
@@ -56,26 +65,81 @@ const ProfileScreen = ({ navigation }) => {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [showCurrentPassword, setShowCurrentPassword] = useState(false);
 
+    // Account Deletion Flow states
+    const [deleteStep, setDeleteStep] = useState(1); // 1: Password, 2: Choice, 3: OTP
+    const [deleteOtpArray, setDeleteOtpArray] = useState(['', '', '', '']);
+    const deleteOtpInputs = React.useRef([]);
+
     const validatePassword = (pass) => {
         const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
         return regex.test(pass);
     };
 
-    const handleUpdateInfo = async () => {
+    const handleUpdateInfoTrigger = () => {
         if (!name || !tel) {
             showToast('Nom et Téléphone sont obligatoires', 'error');
             return;
         }
+        setPendingUpdateData({ name, tel, email });
+        setOtpStep(1);
+        setShowVerificationModal(true);
+    };
 
+    const handleSendOtp = async (type) => {
+        let formattedTel = tel.replace(/\s/g, '').trim();
+        if (!formattedTel.startsWith('+')) {
+            formattedTel = '+' + formattedTel;
+        }
+
+        setOtpLoadingType(type);
+        try {
+            await client.post('/auth/otp/send', { tel: formattedTel, type });
+            setOtpStep(2);
+            showToast('Code envoyé avec succès');
+        } catch (error) {
+            console.error(error);
+            showToast("Échec de l'envoi du code", 'error');
+        } finally {
+            setOtpLoadingType(null);
+        }
+    };
+
+    const handleVerifyAndSave = async (otpCode) => {
         setLoadingInfo(true);
         try {
-            await updateProfile({ name, tel, email });
+            await updateProfile({ ...pendingUpdateData, otp: otpCode });
             showToast('Informations personnelles mises à jour');
             setShowInfoEdit(false);
+            setShowVerificationModal(false);
+            setOtpArray(['', '', '', '']);
         } catch (e) {
-            showToast('Impossible de mettre à jour les informations', 'error');
+            const msg = e.response?.data?.message || 'Code invalide ou erreur de mise à jour';
+            showToast(msg, 'error');
         } finally {
             setLoadingInfo(false);
+        }
+    };
+
+    const handleOtpChange = (value, index) => {
+        const newOtpArray = [...otpArray];
+        newOtpArray[index] = value;
+        setOtpArray(newOtpArray);
+
+        if (value && index < 3) {
+            otpInputs.current[index + 1].focus();
+            setFocusedIndex(index + 1);
+        }
+
+        const fullOtp = newOtpArray.join('');
+        if (fullOtp.length === 4) {
+            handleVerifyAndSave(fullOtp);
+        }
+    };
+
+    const handleOtpKeyPress = (e, index) => {
+        if (e.nativeEvent.key === 'Backspace' && !otpArray[index] && index > 0) {
+            otpInputs.current[index - 1].focus();
+            setFocusedIndex(index - 1);
         }
     };
 
@@ -117,23 +181,64 @@ const ProfileScreen = ({ navigation }) => {
         }
     };
 
-    const handleDeleteAccount = async () => {
+    const handleDeleteTrigger = () => {
         if (!currentPassword) {
             showToast('Veuillez entrer votre mot de passe', 'warning');
             return;
         }
+        setDeleteStep(2);
+    };
 
+    const handleSendDeleteOtp = async (type) => {
+        let formattedTel = user.tel.replace(/\s/g, '').trim();
+        if (!formattedTel.startsWith('+')) {
+            formattedTel = '+' + formattedTel;
+        }
+
+        setOtpLoadingType(type);
+        try {
+            await client.post('/auth/otp/send', { tel: formattedTel, type });
+            setDeleteStep(3);
+            showToast('Code de suppression envoyé');
+        } catch (error) {
+            showToast("Échec de l'envoi du code", 'error');
+        } finally {
+            setOtpLoadingType(null);
+        }
+    };
+
+    const handleFinalDelete = async (otpCode) => {
         setLoadingDelete(true);
         try {
-            await client.delete('/profile', { data: { password: currentPassword } });
+            await client.delete('/profile', {
+                data: {
+                    password: currentPassword,
+                    otp: otpCode
+                }
+            });
             setDeleteModalVisible(false);
             showToast('Votre compte a été supprimé');
             setTimeout(logout, 2000);
         } catch (e) {
-            const msg = e.response?.data?.errors?.password?.[0] || e.response?.data?.message || 'Erreur lors de la suppression';
+            const msg = e.response?.data?.message || 'Code invalide ou erreur lors de la suppression';
             showToast(msg, 'error');
         } finally {
             setLoadingDelete(false);
+        }
+    };
+
+    const handleDeleteOtpChange = (value, index) => {
+        const newOtpArray = [...deleteOtpArray];
+        newOtpArray[index] = value;
+        setDeleteOtpArray(newOtpArray);
+
+        if (value && index < 3) {
+            deleteOtpInputs.current[index + 1].focus();
+        }
+
+        const fullOtp = newOtpArray.join('');
+        if (fullOtp.length === 4) {
+            handleFinalDelete(fullOtp);
         }
     };
 
@@ -159,8 +264,9 @@ const ProfileScreen = ({ navigation }) => {
 
     return (
         <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            behavior={Platform.OS === 'ios' ? 'padding' : null}
             style={styles.container}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
         >
             <Toast ref={toastRef} />
 
@@ -278,7 +384,7 @@ const ProfileScreen = ({ navigation }) => {
 
                                 <TouchableOpacity
                                     style={styles.saveButton}
-                                    onPress={handleUpdateInfo}
+                                    onPress={handleUpdateInfoTrigger}
                                     disabled={loadingInfo}
                                 >
                                     {loadingInfo ? (
@@ -383,59 +489,233 @@ const ProfileScreen = ({ navigation }) => {
                 transparent={true}
                 animationType="fade"
             >
-                <View style={styles.modalOverlay}>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={styles.modalOverlay}
+                >
                     <View style={styles.modalContent}>
                         <View style={styles.modalIconBox}>
                             <Ionicons name="warning" size={30} color={Colors.error} />
                         </View>
                         <Text style={styles.modalTitle}>Supprimer le compte ?</Text>
-                        <Text style={styles.modalText}>
-                            Cette action est irréversible. Toutes vos réservations et points seront perdus.
-                            Veuillez entrer votre mot de passe pour confirmer.
-                        </Text>
 
-                        <View style={styles.modalInputContainer}>
-                            <TextInput
-                                style={styles.flexInput}
-                                placeholder="Votre mot de passe actuel"
-                                secureTextEntry={!showCurrentPassword}
-                                value={currentPassword}
-                                onChangeText={setCurrentPassword}
-                                autoFocus
-                            />
-                            <TouchableOpacity onPress={() => setShowCurrentPassword(!showCurrentPassword)}>
-                                <Ionicons
-                                    name={showCurrentPassword ? 'eye-off-outline' : 'eye-outline'}
-                                    size={20}
-                                    color={Colors.textLight}
-                                />
-                            </TouchableOpacity>
-                        </View>
+                        {deleteStep === 1 && (
+                            <>
+                                <Text style={styles.modalText}>
+                                    Cette action est irréversible. Toutes vos réservations et points seront perdus.
+                                    Veuillez entrer votre mot de passe pour confirmer.
+                                </Text>
 
-                        <View style={styles.modalActions}>
-                            <TouchableOpacity
-                                style={styles.cancelLink}
-                                onPress={() => {
-                                    setDeleteModalVisible(false);
-                                    setCurrentPassword('');
-                                }}
-                            >
-                                <Text style={styles.cancelLinkText}>Annuler</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.deleteBtn, loadingDelete && { opacity: 0.7 }]}
-                                onPress={handleDeleteAccount}
-                                disabled={loadingDelete}
-                            >
-                                {loadingDelete ? (
-                                    <ActivityIndicator color="#FFF" />
-                                ) : (
-                                    <Text style={styles.deleteBtnText}>Supprimer</Text>
-                                )}
-                            </TouchableOpacity>
-                        </View>
+                                <View style={styles.modalInputContainer}>
+                                    <TextInput
+                                        style={styles.flexInput}
+                                        placeholder="Votre mot de passe actuel"
+                                        secureTextEntry={!showCurrentPassword}
+                                        value={currentPassword}
+                                        onChangeText={setCurrentPassword}
+                                        autoFocus
+                                    />
+                                    <TouchableOpacity onPress={() => setShowCurrentPassword(!showCurrentPassword)}>
+                                        <Ionicons
+                                            name={showCurrentPassword ? 'eye-off-outline' : 'eye-outline'}
+                                            size={20}
+                                            color={Colors.textLight}
+                                        />
+                                    </TouchableOpacity>
+                                </View>
+
+                                <View style={styles.modalActions}>
+                                    <TouchableOpacity
+                                        style={styles.cancelLink}
+                                        onPress={() => {
+                                            setDeleteModalVisible(false);
+                                            setCurrentPassword('');
+                                            setDeleteStep(1);
+                                        }}
+                                    >
+                                        <Text style={styles.cancelLinkText}>Annuler</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={styles.deleteBtn}
+                                        onPress={handleDeleteTrigger}
+                                    >
+                                        <Text style={styles.deleteBtnText}>Continuer</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </>
+                        )}
+
+                        {deleteStep === 2 && (
+                            <>
+                                <Text style={styles.modalText}>
+                                    Veuillez choisir une méthode pour recevoir votre code de confirmation de suppression.
+                                </Text>
+
+                                <View style={styles.otpActionRow}>
+                                    <TouchableOpacity
+                                        style={[styles.otpBtn, { backgroundColor: '#25D366' }]}
+                                        onPress={() => handleSendDeleteOtp('whatsapp')}
+                                        disabled={otpLoadingType !== null}
+                                    >
+                                        <Ionicons name="logo-whatsapp" size={20} color="#FFF" style={{ marginRight: 8 }} />
+                                        {otpLoadingType === 'whatsapp' ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.otpBtnText}>Via WhatsApp</Text>}
+                                    </TouchableOpacity>
+                                </View>
+
+                                <View style={styles.otpActionRow}>
+                                    <TouchableOpacity
+                                        style={[styles.otpBtn, { backgroundColor: Colors.tertiary }]}
+                                        onPress={() => handleSendDeleteOtp('sms')}
+                                        disabled={otpLoadingType !== null}
+                                    >
+                                        <Ionicons name="chatbox-ellipses-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />
+                                        {otpLoadingType === 'sms' ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.otpBtnText}>Via SMS</Text>}
+                                    </TouchableOpacity>
+                                </View>
+
+                                <TouchableOpacity style={styles.resendBtn} onPress={() => setDeleteStep(1)}>
+                                    <Text style={styles.resendText}>Retour au mot de passe</Text>
+                                </TouchableOpacity>
+                            </>
+                        )}
+
+                        {deleteStep === 3 && (
+                            <>
+                                <Text style={styles.modalText}>
+                                    Saisissez le code envoyé au {user.tel} pour confirmer la suppression définitive.
+                                </Text>
+
+                                <View style={styles.otpSplitRow}>
+                                    {deleteOtpArray.map((digit, index) => (
+                                        <TextInput
+                                            key={index}
+                                            ref={(ref) => (deleteOtpInputs.current[index] = ref)}
+                                            style={[
+                                                styles.otpBox,
+                                                (digit || focusedIndex === index) ? styles.otpBoxActive : null
+                                            ]}
+                                            value={digit}
+                                            onFocus={() => setFocusedIndex(index)}
+                                            onChangeText={(val) => handleDeleteOtpChange(val, index)}
+                                            onKeyPress={(e) => {
+                                                if (e.nativeEvent.key === 'Backspace' && !deleteOtpArray[index] && index > 0) {
+                                                    deleteOtpInputs.current[index - 1].focus();
+                                                }
+                                            }}
+                                            keyboardType="number-pad"
+                                            maxLength={1}
+                                            autoFocus={index === 0}
+                                            selectionColor={Colors.tertiary}
+                                        />
+                                    ))}
+                                </View>
+
+                                {loadingDelete && <ActivityIndicator color={Colors.error} style={{ marginTop: 10 }} />}
+
+                                <TouchableOpacity style={styles.resendBtn} onPress={() => setDeleteStep(2)}>
+                                    <Text style={styles.resendText}>Changer de méthode / Renvoyer</Text>
+                                </TouchableOpacity>
+                            </>
+                        )}
                     </View>
-                </View>
+                </KeyboardAvoidingView>
+            </Modal>
+
+            {/* Verification OTP Modal */}
+            <Modal
+                visible={showVerificationModal}
+                transparent={true}
+                animationType="slide"
+            >
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={styles.modalOverlay}
+                >
+                    <View style={styles.modalContent}>
+                        <TouchableOpacity
+                            style={styles.closeModalBtn}
+                            onPress={() => {
+                                setShowVerificationModal(false);
+                                setOtpArray(['', '', '', '']);
+                            }}
+                        >
+                            <Ionicons name="close" size={24} color={Colors.textLight} />
+                        </TouchableOpacity>
+
+                        <View style={styles.modalIconBox}>
+                            <Ionicons name="shield-checkmark" size={30} color={Colors.secondary} />
+                        </View>
+
+                        {otpStep === 1 ? (
+                            <>
+                                <Text style={styles.modalTitle}>Vérification du compte</Text>
+                                <Text style={styles.modalText}>
+                                    Par mesure de sécurité, nous devons vous envoyer un code de validation pour confirmer ces changements.
+                                </Text>
+
+                                <View style={styles.otpActionRow}>
+                                    <TouchableOpacity
+                                        style={[styles.otpBtn, { backgroundColor: '#25D366' }]}
+                                        onPress={() => handleSendOtp('whatsapp')}
+                                        disabled={otpLoadingType !== null}
+                                    >
+                                        <Ionicons name="logo-whatsapp" size={20} color="#FFF" style={{ marginRight: 8 }} />
+                                        {otpLoadingType === 'whatsapp' ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.otpBtnText}>Via WhatsApp</Text>}
+                                    </TouchableOpacity>
+                                </View>
+
+                                <View style={styles.otpActionRow}>
+                                    <TouchableOpacity
+                                        style={[styles.otpBtn, { backgroundColor: Colors.tertiary }]}
+                                        onPress={() => handleSendOtp('sms')}
+                                        disabled={otpLoadingType !== null}
+                                    >
+                                        <Ionicons name="chatbox-ellipses-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />
+                                        {otpLoadingType === 'sms' ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.otpBtnText}>Via SMS</Text>}
+                                    </TouchableOpacity>
+                                </View>
+                            </>
+                        ) : (
+                            <>
+                                <Text style={styles.modalTitle}>Code de validation</Text>
+                                <Text style={styles.modalText}>
+                                    Entrez le code envoyé au {tel}
+                                </Text>
+
+                                <View style={styles.otpSplitRow}>
+                                    {otpArray.map((digit, index) => (
+                                        <TextInput
+                                            key={index}
+                                            ref={(ref) => (otpInputs.current[index] = ref)}
+                                            style={[
+                                                styles.otpBox,
+                                                (digit || focusedIndex === index) ? styles.otpBoxActive : null
+                                            ]}
+                                            value={digit}
+                                            onFocus={() => setFocusedIndex(index)}
+                                            onChangeText={(val) => handleOtpChange(val, index)}
+                                            onKeyPress={(e) => handleOtpKeyPress(e, index)}
+                                            keyboardType="number-pad"
+                                            maxLength={1}
+                                            autoFocus={index === 0}
+                                            selectionColor={Colors.tertiary}
+                                        />
+                                    ))}
+                                </View>
+
+                                {loadingInfo && <ActivityIndicator color={Colors.secondary} style={{ marginTop: 10 }} />}
+
+                                <TouchableOpacity
+                                    style={styles.resendBtn}
+                                    onPress={() => setOtpStep(1)}
+                                    disabled={loadingInfo}
+                                >
+                                    <Text style={styles.resendText}>Changer de méthode / Renvoyer</Text>
+                                </TouchableOpacity>
+                            </>
+                        )}
+                    </View>
+                </KeyboardAvoidingView>
             </Modal>
         </KeyboardAvoidingView>
     );
@@ -743,7 +1023,62 @@ const styles = StyleSheet.create({
         color: '#FFF',
         fontFamily: 'Poppins_600SemiBold',
         fontSize: 15,
-    }
+    },
+    closeModalBtn: {
+        position: 'absolute',
+        top: 20,
+        right: 20,
+        padding: 5,
+    },
+    otpActionRow: {
+        width: '100%',
+        marginBottom: 12,
+    },
+    otpBtn: {
+        width: '100%',
+        height: 52,
+        borderRadius: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    otpBtnText: {
+        color: '#FFF',
+        fontSize: 15,
+        fontFamily: 'Poppins_600SemiBold',
+    },
+    otpSplitRow: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        marginVertical: 15,
+        gap: 12,
+    },
+    otpBox: {
+        width: 50,
+        height: 55,
+        backgroundColor: Colors.background,
+        borderRadius: 12,
+        borderWidth: 1.5,
+        borderColor: Colors.border,
+        textAlign: 'center',
+        fontSize: 22,
+        fontFamily: 'Poppins_700Bold',
+        color: Colors.primary,
+    },
+    otpBoxActive: {
+        borderColor: Colors.secondary,
+        backgroundColor: Colors.surface,
+    },
+    resendBtn: {
+        marginTop: 15,
+        padding: 10,
+    },
+    resendText: {
+        color: Colors.textLight,
+        fontSize: 13,
+        fontFamily: 'Poppins_500Medium',
+        textDecorationLine: 'underline',
+    },
 });
 
 export default ProfileScreen;

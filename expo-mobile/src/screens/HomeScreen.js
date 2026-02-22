@@ -138,7 +138,7 @@ const HomeScreen = ({ navigation }) => {
 
                 {pubs.filter(p => p.image).length > 0 && (
                     <View style={styles.pubsSection}>
-                        <Text style={styles.sectionTitle}>Actualités & Offres</Text>
+                        <Text style={[styles.sectionTitle, { marginBottom: 16 }]}>Actualités & Offres</Text>
                         <ScrollView
                             ref={pubScrollRef}
                             horizontal
@@ -189,7 +189,12 @@ const HomeScreen = ({ navigation }) => {
 
                 {products.length > 0 && (
                     <View style={styles.productStackSection}>
-                        <Text style={styles.sectionTitle}>Santé Plus</Text>
+                        <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>Santé Plus</Text>
+                            <TouchableOpacity onPress={() => navigation.navigate('Store')}>
+                                <Text style={styles.seeAllText}>Voir tout</Text>
+                            </TouchableOpacity>
+                        </View>
                         <ScrollView
                             style={styles.productStackList}
                             nestedScrollEnabled={true}
@@ -338,7 +343,17 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontFamily: 'Poppins_700Bold',
         color: Colors.primary,
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         marginBottom: 16,
+    },
+    seeAllText: {
+        fontSize: 14,
+        fontFamily: 'Poppins_600SemiBold',
+        color: Colors.secondary,
     },
     pubsSection: {
         marginBottom: 24,
