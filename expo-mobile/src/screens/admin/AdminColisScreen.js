@@ -43,6 +43,9 @@ const AdminColisScreen = ({ navigation }) => {
     const [startStation, setStartStation] = useState('');
     const [endStation, setEndStation] = useState('');
     const [expediteurId, setExpediteurId] = useState('');
+    const [expediteurNom, setExpediteurNom] = useState('');
+    const [expediteurTel, setExpediteurTel] = useState('');
+    const [isManualSender, setIsManualSender] = useState(false);
 
     const fetchData = async () => {
         try {
@@ -67,8 +70,18 @@ const AdminColisScreen = ({ navigation }) => {
     }, []);
 
     const handleSave = async () => {
-        if (!destNom || !destTel || !prix || !startStation || !endStation || !expediteurId) {
-            Alert.alert('Erreur', 'Veuillez remplir tous les champs');
+        if (!destNom || !destTel || !prix || !startStation || !endStation) {
+            Alert.alert('Erreur', 'Veuillez remplir tous les champs obligatoires');
+            return;
+        }
+
+        if (!isManualSender && !expediteurId) {
+            Alert.alert('Erreur', 'Veuillez sélectionner un expéditeur ou choisir l\'envoi manuel');
+            return;
+        }
+
+        if (isManualSender && (!expediteurNom || !expediteurTel)) {
+            Alert.alert('Erreur', 'Veuillez remplir les informations de l\'expéditeur manuel');
             return;
         }
 
@@ -84,7 +97,9 @@ const AdminColisScreen = ({ navigation }) => {
             statut,
             station_depart_id: startStation,
             station_arrivee_id: endStation,
-            expediteur_id: expediteurId,
+            expediteur_id: isManualSender ? null : expediteurId,
+            expediteur_nom: isManualSender ? expediteurNom : null,
+            expediteur_tel: isManualSender ? expediteurTel : null,
         };
 
         try {
@@ -111,6 +126,9 @@ const AdminColisScreen = ({ navigation }) => {
         setStartStation('');
         setEndStation('');
         setExpediteurId('');
+        setExpediteurNom('');
+        setExpediteurTel('');
+        setIsManualSender(false);
         setEditColis(null);
     };
 
@@ -224,7 +242,9 @@ const AdminColisScreen = ({ navigation }) => {
                 <Text style={styles.price}>{item.prix} CFA</Text>
             </View>
             <View style={styles.cardFooter}>
-                <Text style={styles.expediteur}>Exp: {item.expediteur?.nom}</Text>
+                <Text style={styles.expediteur}>
+                    Exp: {item.expediteur?.nom || item.expediteur_nom || 'Inconnu'}
+                </Text>
                 <View style={styles.actions}>
                     {canEdit && ['en_attente', 'en_cours', 'arrive'].includes(item.statut) && (
                         <TouchableOpacity
@@ -246,7 +266,10 @@ const AdminColisScreen = ({ navigation }) => {
                             setStatut(item.statut);
                             setStartStation(item.station_depart_id.toString());
                             setEndStation(item.station_arrivee_id.toString());
-                            setExpediteurId(item.expediteur_id.toString());
+                            setExpediteurId(item.expediteur_id?.toString() || '');
+                            setExpediteurNom(item.expediteur_nom || '');
+                            setExpediteurTel(item.expediteur_tel || '');
+                            setIsManualSender(!item.expediteur_id);
                             setModalVisible(true);
                         }} style={styles.actionBtn}>
                             <Ionicons name="pencil" size={18} color={Colors.primary} />
@@ -351,17 +374,43 @@ const AdminColisScreen = ({ navigation }) => {
                             </Picker>
                         </View>
 
-                        <Text style={styles.label}>Expéditeur</Text>
-                        <View style={[styles.pickerContainer, editColis && editColis.statut !== 'en_attente' && styles.disabledInput]}>
-                            <Picker
-                                selectedValue={expediteurId}
-                                onValueChange={setExpediteurId}
-                                enabled={!editColis || editColis.statut === 'en_attente'}
-                            >
-                                <Picker.Item label="Sélectionner..." value="" />
-                                {clients.map(c => <Picker.Item key={c.id} label={c.nom} value={c.id.toString()} />)}
-                            </Picker>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                            <Text style={[styles.label, { marginBottom: 0 }]}>Expéditeur</Text>
+                            <TouchableOpacity onPress={() => setIsManualSender(!isManualSender)}>
+                                <Text style={{ color: Colors.secondary, fontSize: 12, fontFamily: 'Poppins_600SemiBold' }}>
+                                    {isManualSender ? 'Sélectionner Client' : 'Saisie Manuelle'}
+                                </Text>
+                            </TouchableOpacity>
                         </View>
+
+                        {isManualSender ? (
+                            <View>
+                                <TextInput
+                                    style={[styles.input, { marginBottom: 10 }]}
+                                    placeholder="Nom de l'expéditeur"
+                                    value={expediteurNom}
+                                    onChangeText={setExpediteurNom}
+                                />
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Téléphone de l'expéditeur"
+                                    value={expediteurTel}
+                                    onChangeText={setExpediteurTel}
+                                    keyboardType="phone-pad"
+                                />
+                            </View>
+                        ) : (
+                            <View style={[styles.pickerContainer, editColis && editColis.statut !== 'en_attente' && styles.disabledInput]}>
+                                <Picker
+                                    selectedValue={expediteurId}
+                                    onValueChange={setExpediteurId}
+                                    enabled={!editColis || editColis.statut === 'en_attente'}
+                                >
+                                    <Picker.Item label="Sélectionner un client..." value="" />
+                                    {clients.map(c => <Picker.Item key={c.id} label={c.nom} value={c.id.toString()} />)}
+                                </Picker>
+                            </View>
+                        )}
 
                         <Text style={styles.label}>Statut</Text>
                         <View style={styles.pickerContainer}>
