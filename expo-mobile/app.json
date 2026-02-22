@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "Nonvi Voyage Plus",
+    "slug": "nonvi_voyage_plus",
+    "scheme": "nonvi",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/app_image.png",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#FAF8F5",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/app_image.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FAF8F5"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/app_image.png",
+        "backgroundColor": "#FAF8F5"
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "@react-native-community/datetimepicker",
+      "expo-font",
+      "expo-asset",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "L'application a besoin d'accéder à votre caméra pour scanner les tickets."
+        }
+      ],
+      "expo-web-browser"
+    ]
+  }
+}

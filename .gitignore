@@ -1,18 +1,22 @@
-/node_modules
-/public/build
-/public/hot
-/public/storage
-/storage/*.key
-/vendor
-.env
-.env.backup
-.env.production
-.phpunit.result.cache
-Homestead.json
-Homestead.yaml
-auth.json
-npm-debug.log
-yarn-error.log
-/.fleet
-/.idea
-/.vscode
+# Nonvi Project Root GitIgnore
+
+# Ignoring dependency folders in subdirectories
+**/node_modules/
+**/vendor/
+
+# Ignoring environment files
+**/.env
+**/.env.*
+
+# Ignoring IDE and OS files
+.DS_Store
+.idea/
+.vscode/
+
+# Ignoring Expo files
+**/.expo/
+
+# Ignoring Laravel storage and bootstrap cache
+**/storage/framework/
+**/storage/logs/
+**/bootstrap/cache/
