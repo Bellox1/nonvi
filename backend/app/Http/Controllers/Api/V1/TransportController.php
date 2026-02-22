@@ -52,7 +52,7 @@ class TransportController extends Controller
                 "callback_url" => route('api.payment.callback', ['type' => 'reservation', 'id' => 0]), // ID 0 because not created yet
                 "customer" => [
                     "firstname" => auth()->user()->name,
-                    "email" => auth()->user()->email,
+                    "email" => auth()->user()->email ?? 'customer@nonviplus.com',
                 ]
             ]);
 
@@ -72,6 +72,10 @@ class TransportController extends Controller
                 'transaction_id' => $transaction->id
             ], 201);
         } catch (\Exception $e) {
+            \Log::error('FedaPay Transport Error: ' . $e->getMessage(), [
+                'user' => auth()->user(),
+                'exception' => $e
+            ]);
             return response()->json(['message' => 'Erreur FedaPay: ' . $e->getMessage()], 500);
         }
     }

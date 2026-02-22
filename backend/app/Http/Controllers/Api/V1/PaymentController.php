@@ -47,7 +47,7 @@ class PaymentController extends Controller
                 "callback_url" => route('api.payment.callback', ['type' => $request->type, 'id' => $model->id]),
                 "customer" => [
                     "firstname" => auth()->user()->name,
-                    "email" => auth()->user()->email,
+                    "email" => auth()->user()->email ?? 'customer@nonviplus.com',
                 ]
             ]);
 

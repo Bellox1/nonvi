@@ -144,13 +144,6 @@ const RegisterScreen = ({ navigation }) => {
                 />
                 <View style={styles.imgOverlay} />
 
-                {/* Bouton retour */}
-                <TouchableOpacity
-                    style={styles.backBtn}
-                    onPress={() => navigation.navigate('Welcome')}
-                >
-                    <Ionicons name="arrow-back" size={22} color="#FFF" />
-                </TouchableOpacity>
 
                 {/* Branding en bas de l'image */}
                 <View style={styles.branding}>

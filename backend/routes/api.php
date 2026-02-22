@@ -77,6 +77,7 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1'], functi
             // Reservations
             Route::get('reservations', 'AdminReservationController@index');
             Route::patch('reservations/{id}/status', 'AdminReservationController@updateStatus');
+            Route::post('reservations/bulk-status', 'AdminReservationController@bulkUpdateStatus');
             Route::post('reservations/scan', 'AdminReservationController@scan');
             Route::delete('reservations/{id}', 'AdminReservationController@destroy');
 

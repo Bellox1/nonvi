@@ -60,13 +60,6 @@ const LoginScreen = ({ navigation }) => {
                 {/* Overlay léger */}
                 <View style={styles.imgOverlay} />
 
-                {/* Bouton retour */}
-                <TouchableOpacity
-                    style={styles.backBtn}
-                    onPress={() => navigation.navigate('Welcome')}
-                >
-                    <Ionicons name="arrow-back" size={22} color="#FFF" />
-                </TouchableOpacity>
 
                 {/* Logo + nom en bas de la zone image */}
                 <View style={styles.branding}>

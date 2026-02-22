@@ -127,6 +127,7 @@ const AdminDashboardScreen = () => {
                     <View style={styles.statsGrid}>
                         <StatCard title="Réservations" value={data?.stats?.total_reservations || 0} icon="car" />
                         <StatCard title="En attente" value={data?.stats?.pending_reservations || 0} icon="time" />
+                        {hasPermission('produit_access') && <StatCard title="Produits" value={data?.stats?.total_products || 0} icon="basket" />}
                         {hasPermission('user_access') && <StatCard title="Comptes App" value={data?.stats?.total_users || 0} icon="people" />}
                         {hasPermission('revenue_show') && <StatCard title="Revenus" value={`${data?.stats?.revenue || 0} CFA`} icon="wallet" />}
                     </View>
@@ -136,7 +137,7 @@ const AdminDashboardScreen = () => {
                         <Text style={styles.sectionTitle}>Modules de Gestion</Text>
                         <View style={styles.moduleGrid}>
                             {hasPermission('station_access') && <ModuleCard title="Stations" icon="location" onPress={() => navigation.navigate('AdminStations')} />}
-                            {hasPermission('produit_access') && <ModuleCard title="Ventes" icon="cart" onPress={() => navigation.navigate('AdminProducts')} />}
+                            {hasPermission('produit_access') && <ModuleCard title="Produits" icon="cart" onPress={() => navigation.navigate('AdminProducts')} />}
                             {hasPermission('client_access') && <ModuleCard title="Clients" icon="people" onPress={() => navigation.navigate('AdminClients')} />}
                             {hasPermission('coli_access') && <ModuleCard title="Colis" icon="cube" onPress={() => navigation.navigate('AdminColis')} />}
                             {hasPermission('user_access') && <ModuleCard title="Comptes" icon="person-add" onPress={() => navigation.navigate('AdminUsers')} />}

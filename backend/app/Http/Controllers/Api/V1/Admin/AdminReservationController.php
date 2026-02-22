@@ -28,7 +28,7 @@ class AdminReservationController extends Controller
         }
 
         $request->validate([
-            'statut' => 'required|string|in:en_attente,confirme,annule,termine'
+            'statut' => 'required|string|in:en_attente,confirme,annule,termine,en_trajet'
         ]);
 
         $reservation = Reservation::findOrFail($id);
@@ -37,6 +37,25 @@ class AdminReservationController extends Controller
         return response()->json([
             'message' => 'Statut mis à jour avec succès',
             'reservation' => $reservation
+        ]);
+    }
+
+    public function bulkUpdateStatus(Request $request)
+    {
+        if (!\Illuminate\Support\Facades\Gate::allows('reservation_edit')) {
+            return response()->json(['message' => 'Action refusée.'], 403);
+        }
+
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'exists:reservations,id',
+            'statut' => 'required|string|in:en_attente,confirme,annule,termine,en_trajet'
+        ]);
+
+        Reservation::whereIn('id', $request->ids)->update(['statut' => $request->statut]);
+
+        return response()->json([
+            'message' => count($request->ids) . ' réservations mises à jour.'
         ]);
     }
 

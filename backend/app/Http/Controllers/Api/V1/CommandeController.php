@@ -64,7 +64,7 @@ class CommandeController extends Controller
                 "callback_url" => route('api.payment.callback', ['type' => 'commande', 'id' => 0]),
                 "customer" => [
                     "firstname" => auth()->user()->name,
-                    "email" => auth()->user()->email,
+                    "email" => auth()->user()->email ?? 'customer@nonviplus.com',
                 ]
             ]);
 
@@ -88,6 +88,10 @@ class CommandeController extends Controller
                 'transaction_id' => $transaction->id
             ], 201);
         } catch (\Exception $e) {
+            \Log::error('FedaPay Commande Error: ' . $e->getMessage(), [
+                'user' => auth()->user(),
+                'exception' => $e
+            ]);
             return response()->json(['message' => 'Erreur FedaPay: ' . $e->getMessage()], 500);
         }
     }

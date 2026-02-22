@@ -44,7 +44,7 @@ const CartScreen = ({ navigation }) => {
 
     const handleOrder = async () => {
         if (retraitType === 'livraison' && !ville.trim()) {
-            showToast('Veuillez préciser la ville de livraison', 'warning');
+            showToast('Veuillez préciser l\'adresse de livraison', 'warning');
             return;
         }
 
@@ -104,7 +104,9 @@ const CartScreen = ({ navigation }) => {
             }
 
         } catch (e) {
-            showToast('Impossible de valider votre commande', 'error');
+            const errorMsg = e.response?.data?.message || 'Impossible de valider votre commande';
+            showToast(errorMsg, 'error');
+            console.error('Order error:', e.response?.data || e.message);
         } finally {
             setSubmitting(false);
         }
@@ -161,7 +163,18 @@ const CartScreen = ({ navigation }) => {
                         </TouchableOpacity>
                     </View>
                     {retraitType === 'livraison' && (
-                        <View style={styles.cityInputContainer}><Text style={styles.label}>Ville de livraison</Text><TextInput style={styles.input} placeholder="Entrez votre ville..." value={ville} onChangeText={setVille} /></View>
+                        <View style={styles.cityInputContainer}>
+                            <Text style={styles.label}>Adresse de livraison</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Rue, quartier, maison..."
+                                value={ville}
+                                onChangeText={setVille}
+                            />
+                            <Text style={styles.deliveryWarning}>
+                                <Ionicons name="information-circle" size={14} color={Colors.warning} /> Pas de livraison hors Cotonou et Porto-Novo
+                            </Text>
+                        </View>
                     )}
                 </View>
 
@@ -215,6 +228,13 @@ const styles = StyleSheet.create({
     orderBtn: { marginTop: 30, backgroundColor: Colors.secondary, height: 60, borderRadius: 15, justifyContent: 'center', alignItems: 'center', marginBottom: 40 },
     orderBtnText: { color: '#FFF', fontSize: 18, fontFamily: 'Poppins_700Bold' },
     btnDisabled: { opacity: 0.7 },
+    deliveryWarning: {
+        marginTop: 8,
+        fontSize: 11,
+        color: Colors.warning,
+        fontFamily: 'Poppins_500Medium',
+        fontStyle: 'italic',
+    },
 });
 
 export default CartScreen;
