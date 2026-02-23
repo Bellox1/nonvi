@@ -6,36 +6,55 @@ import {
 import Colors from '../theme/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import client from '../api/client';
 
 const { width, height } = Dimensions.get('window');
-
-const slides = [
-    {
-        image: require('../../assets/app/nonvivoyageplus_cover.webp'),
-        title: 'Bienvenue sur\nNonvi Voyage Plus',
-        subtitle: 'Votre partenaire de voyage et de santé au Bénin',
-    },
-    {
-        image: require('../../assets/app/reservation.webp'),
-        title: 'Réservez votre\nvoyage en 1 clic',
-        subtitle: 'Choisissez votre départ, votre destination et partez sereinement',
-    },
-    {
-        image: require('../../assets/app/sale2.webp'),
-        title: 'Santé Plus',
-        subtitle: 'Commandez vos produits de santé directement depuis l\'app',
-    },
-    {
-        image: require('../../assets/app/vue1.webp'),
-        title: 'Partout au Bénin',
-        subtitle: 'Un réseau de stations pour vous servir dans tout le pays',
-    },
-];
 
 const WelcomeScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets();
     const scrollRef = useRef(null);
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [slides, setSlides] = useState([
+        {
+            image: require('../../assets/app/nonvivoyageplus_cover.webp'),
+            title: 'Bienvenue sur\nNonvi Voyage Plus',
+            subtitle: 'Votre partenaire de voyage au Bénin',
+        },
+        {
+            image: require('../../assets/app/reservation.webp'),
+            title: 'Réservez votre\nvoyage en 1 clic',
+            subtitle: 'Choisissez votre départ, votre destination et partez sereinement',
+        },
+        {
+            image: require('../../assets/app/vue1.webp'),
+            title: 'Nos Stations',
+            subtitle: 'Un réseau de stations pour vous servir dans tout le pays',
+        },
+    ]);
+
+    useEffect(() => {
+        const fetchStations = async () => {
+            try {
+                const response = await client.get('/stations');
+                if (response.data && Array.isArray(response.data)) {
+                    const uniqueCities = [...new Set(response.data.map(s => s.ville))].sort();
+                    if (uniqueCities.length > 0) {
+                        const cityList = uniqueCities.join(', ');
+                        setSlides(prev => {
+                            const newSlides = [...prev];
+                            newSlides[2].title = cityList;
+                            newSlides[2].subtitle = 'Retrouvez-nous dans toutes ces villes du Bénin';
+                            return newSlides;
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching stations for welcome slider:', error);
+            }
+        };
+
+        fetchStations();
+    }, []);
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -44,7 +63,7 @@ const WelcomeScreen = ({ navigation }) => {
             setCurrentIndex(next);
         }, 3500);
         return () => clearInterval(timer);
-    }, [currentIndex]);
+    }, [currentIndex, slides.length]);
 
     const handleScroll = (e) => {
         const idx = Math.round(e.nativeEvent.contentOffset.x / width);
