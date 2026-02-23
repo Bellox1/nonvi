@@ -10,8 +10,9 @@ import {
     Modal,
     Platform,
     StatusBar,
-    SafeAreaView
+    TextInput
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import client from '../../api/client';
 import Colors from '../../theme/Colors';
 import { Ionicons } from '@expo/vector-icons';
