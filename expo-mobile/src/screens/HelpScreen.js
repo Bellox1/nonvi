@@ -22,7 +22,7 @@ const HelpScreen = ({ navigation }) => {
             description: "Le jour du départ, ouvrez 'Historique' et cliquez sur votre réservation. Présentez le QR Code qui s'affiche au contrôleur lors de l'embarquement."
         },
         {
-            icon: "person-outline",
+            icon: "person-outline", 
             title: "Gérer mon profil",
             description: "Allez dans 'Profil' pour modifier vos infos (nom, tel, mot de passe). Toute modification sensible nécessite une validation par code OTP."
         },

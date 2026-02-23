@@ -207,11 +207,34 @@ class AuthController extends Controller
         });
     }
 
+    public function checkUser(Request $request)
+    {
+        $request->validate([
+            'tel' => 'required|string|max:20',
+        ]);
+
+        $exists = User::where('tel', $request->tel)->exists();
+
+        if (!$exists) {
+            return response()->json([
+                'message' => 'Ce numéro de téléphone n\'est pas enregistré sur Nonvi Voyage.',
+                'exists' => false
+            ], 404);
+        }
+
+        return response()->json([
+            'message' => 'Utilisateur trouvé.',
+            'exists' => true
+        ]);
+    }
+
     public function forgotPassword(Request $request)
     {
         $request->validate([
             'tel' => 'required|string|max:20|exists:users,tel',
             'type' => 'required|in:sms,whatsapp'
+        ], [
+            'tel.exists' => 'Ce numéro de téléphone n\'est pas enregistré.'
         ]);
 
         $otp = rand(1000, 9999);

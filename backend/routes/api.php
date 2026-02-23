@@ -7,6 +7,7 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1'], functi
     Route::post('register', 'AuthController@register');
     Route::post('login', 'AuthController@login');
     Route::post('auth/otp/send', 'AuthController@sendOtp');
+    Route::post('auth/check-user', 'AuthController@checkUser');
     Route::post('auth/password/forgot', 'AuthController@forgotPassword');
     Route::post('auth/password/reset', 'AuthController@resetPassword');
     

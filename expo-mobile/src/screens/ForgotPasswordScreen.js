@@ -15,13 +15,32 @@ const ForgotPasswordScreen = ({ navigation }) => {
     const [password, setPassword] = useState('');
     const [passwordConfirmation, setPasswordConfirmation] = useState('');
     const [loading, setLoading] = useState(false);
-    const [otpLoading, setOtpLoading] = useState(false);
+    const [otpLoading, setOtpLoading] = useState(null); // null, 'sms', or 'whatsapp'
     const [step, setStep] = useState(0); // 0: Phone, 1: Choice, 2: OTP, 3: New Password
     const [otpArray, setOtpArray] = useState(['', '', '', '']);
     const [focusedIndex, setFocusedIndex] = useState(0);
     const otpInputs = React.useRef([]);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [checkLoading, setCheckLoading] = useState(false);
+
+    const handleCheckUser = async () => {
+        if (tel.length < 8) {
+            Alert.alert('Erreur', 'Veuillez entrer un numéro valide');
+            return;
+        }
+
+        setCheckLoading(true);
+        try {
+            await client.post('/auth/check-user', { tel });
+            setStep(1);
+        } catch (error) {
+            const msg = error.response?.data?.message || "Ce numéro n'est pas reconnu.";
+            Alert.alert('Numéro introuvable', msg);
+        } finally {
+            setCheckLoading(false);
+        }
+    };
 
     const handleSendOtp = async (type) => {
         if (tel.length < 8) {
@@ -29,7 +48,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
             return;
         }
 
-        setOtpLoading(true);
+        setOtpLoading(type);
         try {
             await client.post('/auth/password/forgot', { tel, type });
             setStep(2);
@@ -37,7 +56,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
             const msg = error.response?.data?.message || "Échec de l'envoi du code.";
             Alert.alert('Erreur', msg);
         } finally {
-            setOtpLoading(false);
+            setOtpLoading(null);
         }
     };
 
@@ -153,8 +172,16 @@ const ForgotPasswordScreen = ({ navigation }) => {
                                 selectionColor={Colors.tertiary}
                             />
                         </View>
-                        <TouchableOpacity style={styles.btn} onPress={() => setStep(1)}>
-                            <Text style={styles.btnText}>Continuer</Text>
+                        <TouchableOpacity
+                            style={styles.btn}
+                            onPress={handleCheckUser}
+                            disabled={checkLoading}
+                        >
+                            {checkLoading ? (
+                                <ActivityIndicator color="#FFF" />
+                            ) : (
+                                <Text style={styles.btnText}>Continuer</Text>
+                            )}
                         </TouchableOpacity>
                     </View>
                 )}
@@ -164,21 +191,21 @@ const ForgotPasswordScreen = ({ navigation }) => {
                         <TouchableOpacity
                             style={[styles.otpBtn, { backgroundColor: '#25D366' }]}
                             onPress={() => handleSendOtp('whatsapp')}
-                            disabled={otpLoading}
+                            disabled={otpLoading !== null}
                         >
                             <Ionicons name="logo-whatsapp" size={22} color="#FFF" />
                             <Text style={styles.otpBtnText}>Par WhatsApp</Text>
-                            {otpLoading && <ActivityIndicator size="small" color="#FFF" />}
+                            {otpLoading === 'whatsapp' && <ActivityIndicator size="small" color="#FFF" />}
                         </TouchableOpacity>
 
                         <TouchableOpacity
                             style={[styles.otpBtn, { backgroundColor: Colors.tertiary }]}
                             onPress={() => handleSendOtp('sms')}
-                            disabled={otpLoading}
+                            disabled={otpLoading !== null}
                         >
                             <Ionicons name="chatbox-ellipses-outline" size={22} color="#FFF" />
                             <Text style={styles.otpBtnText}>Par SMS</Text>
-                            {otpLoading && <ActivityIndicator size="small" color="#FFF" />}
+                            {otpLoading === 'sms' && <ActivityIndicator size="small" color="#FFF" />}
                         </TouchableOpacity>
 
                         <TouchableOpacity style={styles.cancelBtn} onPress={() => setStep(0)}>

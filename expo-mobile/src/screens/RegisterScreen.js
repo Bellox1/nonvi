@@ -20,7 +20,7 @@ const RegisterScreen = ({ navigation }) => {
     const [password, setPassword] = useState('');
     const [passwordConfirmation, setPasswordConfirmation] = useState('');
     const [loading, setLoading] = useState(false);
-    const [otpLoading, setOtpLoading] = useState(false);
+    const [otpLoading, setOtpLoading] = useState(null); // null, 'sms', or 'whatsapp'
     const [step, setStep] = useState(0); // 0: Form, 1: Choice, 2: OTP
     const [otpArray, setOtpArray] = useState(['', '', '', '']);
     const [focusedIndex, setFocusedIndex] = useState(0);
@@ -35,7 +35,7 @@ const RegisterScreen = ({ navigation }) => {
             formattedTel = '+' + formattedTel;
         }
 
-        setOtpLoading(true);
+        setOtpLoading(type);
         try {
             await client.post('/auth/otp/send', { tel: formattedTel, type });
             setStep(2);
@@ -43,7 +43,7 @@ const RegisterScreen = ({ navigation }) => {
             console.error(error);
             Alert.alert('Erreur', "Échec de l'envoi du code. Vérifiez le numéro.");
         } finally {
-            setOtpLoading(false);
+            setOtpLoading(null);
         }
     };
 
@@ -283,10 +283,16 @@ const RegisterScreen = ({ navigation }) => {
                             <TouchableOpacity
                                 style={[styles.otpBtn, { backgroundColor: '#25D366' }]}
                                 onPress={() => handleSendOtp('whatsapp')}
-                                disabled={otpLoading}
+                                disabled={otpLoading !== null}
                             >
-                                <Ionicons name="logo-whatsapp" size={22} color="#FFF" style={{ marginRight: 10 }} />
-                                <Text style={styles.otpBtnLongText}>Par WhatsApp</Text>
+                                {otpLoading === 'whatsapp' ? (
+                                    <ActivityIndicator size="small" color="#FFF" />
+                                ) : (
+                                    <>
+                                        <Ionicons name="logo-whatsapp" size={22} color="#FFF" style={{ marginRight: 10 }} />
+                                        <Text style={styles.otpBtnLongText}>Par WhatsApp</Text>
+                                    </>
+                                )}
                             </TouchableOpacity>
                         </View>
 
@@ -294,10 +300,16 @@ const RegisterScreen = ({ navigation }) => {
                             <TouchableOpacity
                                 style={[styles.otpBtn, { backgroundColor: Colors.tertiary }]}
                                 onPress={() => handleSendOtp('sms')}
-                                disabled={otpLoading}
+                                disabled={otpLoading !== null}
                             >
-                                <Ionicons name="chatbubble-outline" size={22} color="#FFF" style={{ marginRight: 10 }} />
-                                <Text style={styles.otpBtnLongText}>Par SMS</Text>
+                                {otpLoading === 'sms' ? (
+                                    <ActivityIndicator size="small" color="#FFF" />
+                                ) : (
+                                    <>
+                                        <Ionicons name="chatbubble-outline" size={22} color="#FFF" style={{ marginRight: 10 }} />
+                                        <Text style={styles.otpBtnLongText}>Par SMS</Text>
+                                    </>
+                                )}
                             </TouchableOpacity>
                         </View>
 
