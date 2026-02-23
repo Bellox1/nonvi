@@ -42,8 +42,15 @@ const TransportScreen = ({ navigation }) => {
         return `${year}-${month}-${day}`;
     };
 
-    const [selectedDate, setSelectedDate] = useState(getLocalDateString());
+    const [selectedDate, setSelectedDate] = useState('');
     const [selectedTime, setSelectedTime] = useState('');
+
+    useEffect(() => {
+        const available = getAvailableDates();
+        if (available.length > 0) {
+            setSelectedDate(available[0].value);
+        }
+    }, []);
 
     const fetchStations = async () => {
         try {
@@ -152,6 +159,15 @@ const TransportScreen = ({ navigation }) => {
         else if (pickerType === 'tickets') setNumTickets(value);
         else if (pickerType === 'date') setSelectedDate(value);
         else if (pickerType === 'time') setSelectedTime(value);
+
+        // If date changes, make sure current time is still valid
+        if (pickerType === 'date') {
+            const validTimes = getAvailableTimes(value);
+            if (!validTimes.find(t => t.value === selectedTime)) {
+                setSelectedTime('');
+            }
+        }
+
         setPickerVisible(false);
     };
 
@@ -159,9 +175,20 @@ const TransportScreen = ({ navigation }) => {
         const dates = [];
         const today = new Date();
         for (let i = 0; i < 7; i++) {
-            const date = new Date(); date.setDate(today.getDate() + i);
+            const date = new Date();
+            date.setDate(today.getDate() + i);
+            const val = getLocalDateString(date);
+
+            // Only add date if it has available departure times in the allowed range
+            const times = getAvailableTimes(val);
+            if (times.length === 0) continue;
+
             const dayStr = date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
-            dates.push({ id: i.toString(), label: i === 0 ? `Aujourd'hui ${dayStr}` : i === 1 ? `Demain ${dayStr}` : date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }), value: getLocalDateString(date) });
+            dates.push({
+                id: i.toString(),
+                label: i === 0 ? `Aujourd'hui ${dayStr}` : i === 1 ? `Demain ${dayStr}` : date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }),
+                value: val
+            });
         }
         return dates;
     };
@@ -169,11 +196,24 @@ const TransportScreen = ({ navigation }) => {
     const getAvailableTimes = (date) => {
         const times = [];
         const isToday = date === getLocalDateString();
-        let h = 0, m = 0;
+
+        let h = 6, m = 0; // Mandatory start at 6:00 AM
+
         if (isToday) {
-            const now = new Date(); h = now.getHours(); m = now.getMinutes() + (15 - (now.getMinutes() % 15));
-            if (m >= 60) { m = 0; h += 1; }
+            const now = new Date();
+            const currentH = now.getHours();
+            const currentM = now.getMinutes() + (15 - (now.getMinutes() % 15));
+            let startH = currentH;
+            let startM = currentM;
+            if (startM >= 60) { startM = 0; startH += 1; }
+
+            // If current time is later than 6:00 AM, start from now
+            if (startH > 6 || (startH === 6 && startM > 0)) {
+                h = startH;
+                m = startM;
+            }
         }
+
         while (h < 21 || (h === 21 && m <= 30)) {
             const time = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
             times.push({ id: time, label: time, value: time });
@@ -239,11 +279,23 @@ const TransportScreen = ({ navigation }) => {
                     </View>
                     <View style={{ flexDirection: 'row', marginTop: 20 }}>
                         <TouchableOpacity style={[styles.card, styles.elevation, { flex: 1, marginRight: 10 }]} onPress={() => openPicker('date')}>
-                            <View style={styles.cardHeader}><View style={[styles.iconBox, { backgroundColor: Colors.tertiary }]}><Ionicons name="calendar-outline" size={20} color="#FFF" /></View><Text style={styles.cardTitle}>DATE</Text></View>
+                            <View style={styles.cardHeader}>
+                                <View style={[styles.iconBox, { backgroundColor: Colors.tertiary }]}>
+                                    <Ionicons name="calendar-outline" size={20} color="#FFF" />
+                                </View>
+                                <Text style={styles.cardTitle}>DATE</Text>
+                                {!!selectedDate && <Ionicons name="checkmark-circle" size={16} color={Colors.secondary} style={{ marginLeft: 'auto' }} />}
+                            </View>
                             <Text style={styles.selectText}>{getSelectedLabel('date')}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={[styles.card, styles.elevation, { flex: 0.8 }]} onPress={() => openPicker('time')}>
-                            <View style={styles.cardHeader}><View style={[styles.iconBox, { backgroundColor: Colors.tertiary }]}><Ionicons name="time-outline" size={20} color="#FFF" /></View><Text style={styles.cardTitle}>HEURE</Text></View>
+                            <View style={styles.cardHeader}>
+                                <View style={[styles.iconBox, { backgroundColor: Colors.tertiary }]}>
+                                    <Ionicons name="time-outline" size={20} color="#FFF" />
+                                </View>
+                                <Text style={styles.cardTitle}>HEURE</Text>
+                                {!!selectedTime && <Ionicons name="checkmark-circle" size={16} color={Colors.secondary} style={{ marginLeft: 'auto' }} />}
+                            </View>
                             <Text style={styles.selectText}>{getSelectedLabel('time')}</Text>
                         </TouchableOpacity>
                     </View>
@@ -254,9 +306,53 @@ const TransportScreen = ({ navigation }) => {
                 </View>
             </ScrollView>
 
-            <Modal visible={pickerVisible} animationType="slide" transparent={true}>
-                <View style={styles.modalOverlay}><View style={styles.modalContent}><View style={styles.modalHeader}><Text style={styles.modalTitle}>Sélectionner</Text><TouchableOpacity onPress={() => setPickerVisible(false)}><X size={24} color={Colors.text} /></TouchableOpacity></View>
-                    <FlatList data={getPickerData()} keyExtractor={item => item.id} renderItem={({ item }) => (<TouchableOpacity style={styles.modalItem} onPress={() => selectItem(item.value)}><Text style={styles.modalItemText}>{item.label}</Text></TouchableOpacity>)} /></View></View>
+            <Modal
+                visible={pickerVisible}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setPickerVisible(false)}
+            >
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setPickerVisible(false)}
+                >
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHandle} />
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Sélectionner</Text>
+                            <TouchableOpacity onPress={() => setPickerVisible(false)}>
+                                <X size={24} color={Colors.text} />
+                            </TouchableOpacity>
+                        </View>
+                        <FlatList
+                            data={getPickerData()}
+                            keyExtractor={item => item.id}
+                            renderItem={({ item }) => {
+                                const isSelected =
+                                    (pickerType === 'city_start' && startCity === item.value) ||
+                                    (pickerType === 'city_end' && endCity === item.value) ||
+                                    (pickerType === 'station_start' && startStation === item.value) ||
+                                    (pickerType === 'station_end' && endStation === item.value) ||
+                                    (pickerType === 'tickets' && numTickets === item.value) ||
+                                    (pickerType === 'date' && selectedDate === item.value) ||
+                                    (pickerType === 'time' && selectedTime === item.value);
+
+                                return (
+                                    <TouchableOpacity
+                                        style={[styles.modalItem, isSelected && styles.modalItemSelected]}
+                                        onPress={() => selectItem(item.value)}
+                                    >
+                                        <Text style={[styles.modalItemText, isSelected && styles.modalItemTextSelected]}>
+                                            {item.label}
+                                        </Text>
+                                        {isSelected && <Ionicons name="checkmark-circle" size={20} color={Colors.secondary} />}
+                                    </TouchableOpacity>
+                                );
+                            }}
+                        />
+                    </View>
+                </TouchableOpacity>
             </Modal>
         </View>
     );
@@ -294,11 +390,40 @@ const styles = StyleSheet.create({
     buttonDisabled: { opacity: 0.6 },
     buttonText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    modalContent: { backgroundColor: Colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: height * 0.5, padding: 20 },
-    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
+    modalContent: {
+        backgroundColor: Colors.surface,
+        borderTopLeftRadius: 25,
+        borderTopRightRadius: 25,
+        maxHeight: height * 0.5,
+        padding: 20,
+        paddingTop: 10, // Space for handle
+    },
+    modalHandle: {
+        width: 40,
+        height: 5,
+        backgroundColor: Colors.border,
+        borderRadius: 3,
+        alignSelf: 'center',
+        marginBottom: 15,
+    },
+    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
     modalTitle: { fontSize: 18, fontWeight: '700' },
-    modalItem: { paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: '#EEE' },
-    modalItemText: { fontSize: 15 },
+    modalItem: {
+        paddingVertical: 15,
+        borderBottomWidth: 0.5,
+        borderBottomColor: '#EEE',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    modalItemSelected: {
+        backgroundColor: Colors.secondary + '05',
+    },
+    modalItemText: { fontSize: 15, color: Colors.text },
+    modalItemTextSelected: {
+        color: Colors.secondary,
+        fontWeight: '700',
+    },
 });
 
 export default TransportScreen;

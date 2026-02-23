@@ -7,8 +7,35 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
+use App\Traits\ExportCsvTrait;
+
 class AdminClientController extends Controller
 {
+    use ExportCsvTrait;
+
+    public function export()
+    {
+        if (!\Illuminate\Support\Facades\Gate::allows('export_csv')) {
+            return response()->json(['message' => 'Accès refusé'], 403);
+        }
+
+        $clients = User::doesntHave('roles')->latest()->get();
+        
+        $data = $clients->map(function($c) {
+            return [
+                $c->id,
+                $c->name,
+                $c->tel,
+                $c->email,
+                $c->points,
+                $c->created_at->format('d/m/Y H:i')
+            ];
+        });
+
+        return $this->downloadCsv($data, 'clients-' . date('Y-m-d'), [
+            'ID', 'Nom', 'Téléphone', 'Email', 'Points', 'Date Inscription'
+        ]);
+    }
     private function checkAdmin()
     {
         if (!\Illuminate\Support\Facades\Gate::allows('client_access')) {
@@ -16,13 +43,24 @@ class AdminClientController extends Controller
         }
     }
 
-    public function index()
+    public function index(Request $request)
     {
         if (!\Illuminate\Support\Facades\Gate::allows('client_access')) {
             return response()->json(['message' => 'Accès refusé'], 403);
         }
-        // Return users who have NO roles (these are the mobile clients)
-        $clients = User::doesntHave('roles')->latest()->paginate(20);
+        
+        $query = User::doesntHave('roles')->latest();
+
+        if ($request->has('search')) {
+            $search = $request->get('search');
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('tel', 'like', "%{$search}%");
+            });
+        }
+
+        $clients = $query->paginate(20);
         
         return response()->json($clients);
     }
@@ -36,7 +74,7 @@ class AdminClientController extends Controller
         $request->validate([
             'nom' => 'required|string|max:255',
             'telephone' => 'required|string|unique:users,tel',
-            'email' => 'required|email|max:255|unique:users,email',
+            'email' => 'nullable|email|max:255|unique:users,email',
             'password' => 'nullable|string|min:6',
         ]);
 
@@ -44,7 +82,7 @@ class AdminClientController extends Controller
             'name' => $request->nom,
             'tel' => $request->telephone,
             'email' => $request->email,
-            'password' => Hash::make($request->password ?? 'nonvi2024'),
+            'password' => Hash::make($request->password ?? 'PlusVoyageNonvi1202@'),
         ]);
 
         $user->roles()->sync([]); // No role for clients created by admin
@@ -75,7 +113,7 @@ class AdminClientController extends Controller
         $request->validate([
             'nom' => 'required|string|max:255',
             'telephone' => 'required|string|unique:users,tel,' . $id,
-            'email' => 'required|email|max:255|unique:users,email,' . $id,
+            'email' => 'nullable|email|max:255|unique:users,email,' . $id,
         ]);
 
         $user->update([
@@ -83,6 +121,10 @@ class AdminClientController extends Controller
             'tel' => $request->telephone,
             'email' => $request->email,
         ]);
+
+        if ($request->password) {
+            $user->update(['password' => Hash::make($request->password)]);
+        }
 
         return response()->json([
             'message' => 'Client mis à jour',

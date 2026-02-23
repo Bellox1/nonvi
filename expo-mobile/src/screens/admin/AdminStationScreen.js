@@ -10,12 +10,14 @@ import { Ionicons } from '@expo/vector-icons';
 import Toast, { useToast } from '../../components/Toast';
 
 import { useAuth } from '../../context/AuthContext';
+import { exportToCsv } from '../../utils/export';
 
 const AdminStationScreen = ({ navigation }) => {
     const { hasPermission } = useAuth();
     const canCreate = hasPermission('station_create');
     const canEdit = hasPermission('station_edit');
     const canDelete = hasPermission('station_delete');
+    const canExport = hasPermission('export_csv');
 
     const [stations, setStations] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -149,6 +151,14 @@ const AdminStationScreen = ({ navigation }) => {
                     <Text style={styles.welcomeText}>Administration</Text>
                     <Text style={styles.userName}>Stations</Text>
                 </View>
+                {canExport && (
+                    <TouchableOpacity
+                        onPress={() => exportToCsv('admin/stations-export', 'stations')}
+                        style={{ marginRight: 15 }}
+                    >
+                        <Ionicons name="download-outline" size={24} color={Colors.secondary} />
+                    </TouchableOpacity>
+                )}
                 {canCreate && (
                     <TouchableOpacity style={styles.addBtn} onPress={() => { resetForm(); setModalVisible(true); }}>
                         <Ionicons name="add" size={24} color="#FFF" />

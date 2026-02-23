@@ -6,8 +6,33 @@ use App\Http\Controllers\Controller;
 use App\Models\Station;
 use Illuminate\Http\Request;
 
+use App\Traits\ExportCsvTrait;
+
 class AdminStationController extends Controller
 {
+    use ExportCsvTrait;
+
+    public function export()
+    {
+        if (!\Illuminate\Support\Facades\Gate::allows('export_csv')) {
+            return response()->json(['message' => 'Accès refusé'], 403);
+        }
+
+        $stations = Station::latest()->get();
+        
+        $data = $stations->map(function($s) {
+            return [
+                $s->id,
+                $s->nom,
+                $s->ville,
+                $s->created_at->format('d/m/Y H:i')
+            ];
+        });
+
+        return $this->downloadCsv($data, 'stations-' . date('Y-m-d'), [
+            'ID', 'Nom', 'Ville', 'Date Création'
+        ]);
+    }
     private function checkAdmin()
     {
         if (!\Illuminate\Support\Facades\Gate::allows('station_access')) {

@@ -34,11 +34,19 @@ class TransportController extends Controller
         $request->validate([
             'station_depart_id' => 'required|exists:stations,id',
             'station_arrivee_id' => 'required|exists:stations,id',
-            'date_depart' => 'required|date',
-            'heure_depart' => ['required', 'regex:/^((0[0-9]|1[0-9]|20):[0-5][0-9]|21:(0[0-9]|1[0-9]|2[0-9]|30))$/'],
+            'date_depart' => 'required|date|after_or_equal:today',
+            'heure_depart' => ['required', 'regex:/^(0[6-9]|1[0-9]|20):[0-5][0-9]|21:(0[0-9]|1[0-9]|2[0-9]|30)$/'],
             'nombre_tickets' => 'required|integer|min:1',
             'moyen_paiement' => 'required',
         ]);
+
+        // Check if today and time is already passed
+        if ($request->date_depart === date('Y-m-d')) {
+            $currentTime = date('H:i');
+            if ($request->heure_depart < $currentTime) {
+                return response()->json(['message' => 'L\'heure de départ choisie est déjà passée.'], 422);
+            }
+        }
 
         $prixSetting = \App\Models\Setting::where('key', 'prix_ticket')->first();
         $prixUnit = $prixSetting ? (float)$prixSetting->value : 0;

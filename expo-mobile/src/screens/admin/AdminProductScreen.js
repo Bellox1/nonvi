@@ -22,12 +22,14 @@ import { Ionicons } from '@expo/vector-icons';
 import Toast, { useToast } from '../../components/Toast';
 
 import { useAuth } from '../../context/AuthContext';
+import { exportToCsv } from '../../utils/export';
 
 const AdminProductScreen = ({ navigation }) => {
     const { hasPermission } = useAuth();
     const canCreate = hasPermission('produit_create');
     const canEdit = hasPermission('produit_edit');
     const canDelete = hasPermission('produit_delete');
+    const canExport = hasPermission('export_csv');
 
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -199,6 +201,14 @@ const AdminProductScreen = ({ navigation }) => {
                     <Text style={styles.welcomeText}>Administration</Text>
                     <Text style={styles.userName}>Produits</Text>
                 </View>
+                {canExport && (
+                    <TouchableOpacity
+                        onPress={() => exportToCsv('admin/produits-export', 'produits')}
+                        style={{ marginRight: 15 }}
+                    >
+                        <Ionicons name="download-outline" size={24} color={Colors.secondary} />
+                    </TouchableOpacity>
+                )}
                 {canCreate && (
                     <TouchableOpacity style={styles.addBtn} onPress={() => { resetForm(); setModalVisible(true); }}>
                         <Ionicons name="add" size={24} color="#FFF" />

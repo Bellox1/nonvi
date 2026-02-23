@@ -6,8 +6,34 @@ use App\Http\Controllers\Controller;
 use App\Models\Produit;
 use Illuminate\Http\Request;
 
+use App\Traits\ExportCsvTrait;
+
 class AdminProduitController extends Controller
 {
+    use ExportCsvTrait;
+
+    public function export()
+    {
+        if (!\Illuminate\Support\Facades\Gate::allows('export_csv')) {
+            return response()->json(['message' => 'Accès refusé'], 403);
+        }
+
+        $produits = Produit::latest()->get();
+        
+        $data = $produits->map(function($p) {
+            return [
+                $p->id,
+                $p->nom,
+                $p->prix,
+                $p->stock,
+                $p->created_at->format('d/m/Y H:i')
+            ];
+        });
+
+        return $this->downloadCsv($data, 'produits-' . date('Y-m-d'), [
+            'ID', 'Nom', 'Prix', 'Stock', 'Date Création'
+        ]);
+    }
     public function index()
     {
         if (!\Illuminate\Support\Facades\Gate::allows('produit_access')) {

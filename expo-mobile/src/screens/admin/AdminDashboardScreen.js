@@ -20,14 +20,20 @@ import { useAuth } from '../../context/AuthContext';
 
 const { width } = Dimensions.get('window');
 
-const StatCard = ({ title, value, icon }) => (
-    <View style={styles.statCard}>
-        <View style={styles.iconBox}>
-            <Ionicons name={icon} size={22} color="#FFF" />
-        </View>
-        <View style={styles.statInfo}>
-            <Text style={styles.statValue}>{value}</Text>
-            <Text style={styles.statTitle}>{title}</Text>
+const StatCard = ({ title, value, icon, bgColor = Colors.secondary, fullWidth = false }) => (
+    <View style={[
+        styles.statCard,
+        { backgroundColor: bgColor, shadowColor: bgColor },
+        fullWidth && { width: '100%' }
+    ]}>
+        <View style={fullWidth ? { flexDirection: 'row', alignItems: 'center', gap: 20 } : null}>
+            <View style={styles.iconBox}>
+                <Ionicons name={icon} size={22} color="#FFF" />
+            </View>
+            <View style={styles.statInfo}>
+                <Text style={styles.statValue}>{value}</Text>
+                <Text style={styles.statTitle}>{title}</Text>
+            </View>
         </View>
     </View>
 );
@@ -55,6 +61,9 @@ const AdminDashboardScreen = () => {
             const response = await client.get('/admin/stats');
             setData(response.data);
         } catch (error) {
+            if (error.response?.status === 403) {
+                navigation.navigate('MainTabs', { screen: 'Home' });
+            }
             console.error(error);
         } finally {
             setLoading(false);
@@ -128,8 +137,8 @@ const AdminDashboardScreen = () => {
                         <StatCard title="Réservations" value={data?.stats?.total_reservations || 0} icon="car" />
                         <StatCard title="En attente" value={data?.stats?.pending_reservations || 0} icon="time" />
                         {hasPermission('produit_access') && <StatCard title="Produits" value={data?.stats?.total_products || 0} icon="basket" />}
-                        {hasPermission('user_access') && <StatCard title="Comptes App" value={data?.stats?.total_users || 0} icon="people" />}
-                        {hasPermission('revenue_show') && <StatCard title="Revenus" value={`${data?.stats?.revenue || 0} CFA`} icon="wallet" />}
+                        {hasPermission('client_access') && <StatCard title="Clients" value={data?.stats?.total_clients || 0} icon="person-add" />}
+                        {hasPermission('revenue_show') && <StatCard title="Revenus" value={`${data?.stats?.revenue || 0} CFA`} icon="wallet" bgColor={Colors.tertiary} fullWidth={true} />}
                     </View>
 
                     {/* Modules */}

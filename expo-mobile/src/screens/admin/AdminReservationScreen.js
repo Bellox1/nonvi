@@ -16,12 +16,14 @@ import client from '../../api/client';
 import Colors from '../../theme/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
+import { exportToCsv } from '../../utils/export';
 
 const AdminReservationScreen = ({ navigation }) => {
     const { hasPermission } = useAuth();
     const canShow = hasPermission('reservation_show');
     const canEdit = hasPermission('reservation_edit');
     const canDelete = hasPermission('reservation_delete');
+    const canExport = hasPermission('export_csv');
 
     const [reservations, setReservations] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -32,10 +34,13 @@ const AdminReservationScreen = ({ navigation }) => {
     // Multi-selection states
     const [selectedIds, setSelectedIds] = useState([]);
     const [selectionMode, setSelectionMode] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [showSearch, setShowSearch] = useState(false);
 
-    const fetchReservations = async () => {
+    const fetchReservations = async (search = searchQuery) => {
         try {
-            const response = await client.get('/admin/reservations');
+            const params = search ? { search } : {};
+            const response = await client.get('/admin/reservations', { params });
             setReservations(response.data.data || response.data);
             setSelectedIds([]);
             setSelectionMode(false);
@@ -49,8 +54,11 @@ const AdminReservationScreen = ({ navigation }) => {
     };
 
     useEffect(() => {
-        fetchReservations();
-    }, []);
+        const delayDebounceFn = setTimeout(() => {
+            fetchReservations(searchQuery);
+        }, 500);
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchQuery]);
 
     const toggleSelection = (id) => {
         setSelectedIds(prev => {
@@ -232,37 +240,70 @@ const AdminReservationScreen = ({ navigation }) => {
             <StatusBar barStyle="dark-content" backgroundColor={Colors.surface} />
             <SafeAreaView style={{ backgroundColor: Colors.surface }}>
                 <View style={styles.topHeader}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                        <Ionicons name="arrow-back" size={24} color={Colors.primary} />
-                    </TouchableOpacity>
-                    <View style={styles.headerInfo}>
-                        <Text style={styles.welcomeText}>Administration</Text>
-                        <Text style={styles.userName}>Réservations</Text>
-                    </View>
-                    <View style={styles.headerActions}>
-                        {!selectionMode && (
-                            <TouchableOpacity onPress={selectEnTrajet} style={styles.bulkIconBtn}>
-                                <Ionicons name="copy-outline" size={20} color={Colors.secondary} />
-                                <Text style={styles.bulkIconText}>Sélection</Text>
+                    {!showSearch ? (
+                        <>
+                            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                                <Ionicons name="arrow-back" size={24} color={Colors.primary} />
                             </TouchableOpacity>
-                        )}
-                        {selectionMode ? (
-                            <TouchableOpacity
-                                onPress={() => { setSelectionMode(false); setSelectedIds([]); }}
-                                style={styles.cancelBtn}
-                            >
-                                <Text style={styles.cancelText}>Annuler</Text>
+                            <View style={styles.headerInfo}>
+                                <Text style={styles.welcomeText}>Admin</Text>
+                                <Text style={styles.userName}>Réservations</Text>
+                            </View>
+                            <View style={styles.headerActions}>
+                                <TouchableOpacity
+                                    onPress={() => setShowSearch(true)}
+                                    style={{ marginRight: 15 }}
+                                >
+                                    <Ionicons name="search" size={24} color={Colors.textLight} />
+                                </TouchableOpacity>
+                                {!selectionMode && (
+                                    <TouchableOpacity onPress={selectEnTrajet} style={styles.bulkIconBtn}>
+                                        <Ionicons name="copy-outline" size={20} color={Colors.secondary} />
+                                    </TouchableOpacity>
+                                )}
+                                {selectionMode ? (
+                                    <TouchableOpacity
+                                        onPress={() => { setSelectionMode(false); setSelectedIds([]); }}
+                                        style={styles.cancelBtn}
+                                    >
+                                        <Ionicons name="close-circle" size={24} color={Colors.error} />
+                                    </TouchableOpacity>
+                                ) : (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                        {canExport && (
+                                            <TouchableOpacity
+                                                onPress={() => exportToCsv('admin/reservations-export', 'reservations')}
+                                                style={[styles.refreshBtn, { marginRight: 10 }]}
+                                            >
+                                                <Ionicons name="download-outline" size={22} color={Colors.secondary} />
+                                            </TouchableOpacity>
+                                        )}
+                                        <TouchableOpacity onPress={() => fetchReservations()} style={styles.refreshBtn}>
+                                            <Ionicons name="refresh" size={22} color={Colors.primary} />
+                                        </TouchableOpacity>
+                                    </View>
+                                )}
+                            </View>
+                        </>
+                    ) : (
+                        <View style={styles.searchBar}>
+                            <Ionicons name="search" size={20} color={Colors.textLight} style={{ marginRight: 10 }} />
+                            <TextInput
+                                style={styles.searchInput}
+                                placeholder="Nom client, ticket..."
+                                value={searchQuery}
+                                onChangeText={setSearchQuery}
+                                autoFocus
+                            />
+                            <TouchableOpacity onPress={() => { setShowSearch(false); setSearchQuery(''); }}>
+                                <Ionicons name="close-circle" size={22} color={Colors.textLight} />
                             </TouchableOpacity>
-                        ) : (
-                            <TouchableOpacity onPress={fetchReservations} style={styles.refreshBtn}>
-                                <Ionicons name="refresh" size={22} color={Colors.primary} />
-                            </TouchableOpacity>
-                        )}
-                    </View>
+                        </View>
+                    )}
                 </View>
             </SafeAreaView>
 
-            {loading && !refreshing ? (
+            {loading && reservations.length === 0 ? (
                 <View style={styles.center}>
                     <ActivityIndicator size="large" color={Colors.secondary} />
                 </View>
@@ -570,7 +611,23 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontFamily: 'Poppins_700Bold',
         marginLeft: 12,
-    }
+    },
+    searchBar: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.background,
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        height: 45,
+    },
+    searchInput: {
+        flex: 1,
+        height: '100%',
+        fontFamily: 'Poppins_400Regular',
+        fontSize: 14,
+        color: Colors.primary,
+    },
 });
 
 export default AdminReservationScreen;

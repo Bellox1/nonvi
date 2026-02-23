@@ -10,12 +10,14 @@ import { Ionicons } from '@expo/vector-icons';
 import Toast, { useToast } from '../../components/Toast';
 
 import { useAuth } from '../../context/AuthContext';
+import { exportToCsv } from '../../utils/export';
 
 const AdminClientScreen = ({ navigation }) => {
     const { hasPermission } = useAuth();
     const canCreate = hasPermission('client_create');
     const canEdit = hasPermission('client_edit');
     const canDelete = hasPermission('client_delete');
+    const canExport = hasPermission('export_csv');
 
     const [clients, setClients] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -24,53 +26,68 @@ const AdminClientScreen = ({ navigation }) => {
     const [editClient, setEditClient] = useState(null);
     const [saving, setSaving] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
+    const [total, setTotal] = useState(0);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [showSearch, setShowSearch] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const { toastRef, showToast } = useToast();
 
     const [nom, setNom] = useState('');
-    const [telephone, setTelephone] = useState('');
+    const [telephone, setTelephone] = useState('+229');
     const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('PlusVoyageNonvi1202@');
 
-    const fetchClients = async () => {
+    const fetchClients = async (search = searchQuery) => {
         setErrorMsg('');
         try {
-            const response = await client.get('/admin/clients');
-            const list = Array.isArray(response.data) ? response.data : (response.data.data || []);
+            const params = search ? { search } : {};
+            const response = await client.get('/admin/clients', { params });
+            const data = response.data.data || response.data;
+            const list = Array.isArray(data) ? data : [];
             setClients(list);
+            setTotal(response.data.total || list.length);
         } catch (e) {
             const msg = e.response?.data?.message || e.message || 'Erreur réseau';
-            setErrorMsg(`Chargement échoué(${e.response?.status || '?'}): ${msg} `);
+            setErrorMsg(`Chargement échoué: ${msg}`);
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
     };
 
-    useEffect(() => { fetchClients(); }, []);
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(() => {
+            fetchClients(searchQuery);
+        }, 500);
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchQuery]);
 
     const resetForm = () => {
-        setNom(''); setTelephone(''); setEmail(''); setEditClient(null);
+        setNom('');
+        setTelephone('+229');
+        setEmail('');
+        setPassword('PlusVoyageNonvi1202@');
+        setEditClient(null);
+        setShowPassword(false);
     };
 
     const handleSave = async () => {
-        if (!nom.trim() || !telephone.trim() || !email.trim()) {
-            Alert.alert('Champs manquants', 'Nom, téléphone et email sont obligatoires');
-            return;
-        }
-        if (!/^\d+$/.test(telephone.trim())) {
-            Alert.alert('Format invalide', 'Le téléphone doit contenir uniquement des chiffres');
+        if (!nom.trim() || !telephone.trim()) {
+            Alert.alert('Champs manquants', 'Nom et téléphone sont obligatoires');
             return;
         }
 
         setSaving(true);
         const data = {
             nom: nom.trim(),
-            telephone: parseInt(telephone.trim()),
-            email: email.trim().toLowerCase(),
+            telephone: telephone.trim(),
+            email: email.trim().toLowerCase() || null,
+            password: password,
         };
 
         try {
             if (editClient) {
-                await client.put(`/ admin / clients / ${editClient.id} `, data);
+                await client.put(`/admin/clients/${editClient.id}`, data);
             } else {
                 await client.post('/admin/clients', data);
             }
@@ -98,7 +115,7 @@ const AdminClientScreen = ({ navigation }) => {
                 text: 'Supprimer', style: 'destructive',
                 onPress: async () => {
                     try {
-                        await client.delete(`/ admin / clients / ${id} `);
+                        await client.delete(`/admin/clients/${id}`);
                         fetchClients();
                         Alert.alert('Succès', 'Client supprimé');
                     } catch (e) {
@@ -111,15 +128,15 @@ const AdminClientScreen = ({ navigation }) => {
 
     const renderItem = ({ item }) => (
         <View style={styles.card}>
-            <View style={styles.info}>
+            <View style={styles.userInfo}>
                 <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{(item.nom || '?').charAt(0).toUpperCase()}</Text>
+                    <Text style={styles.avatarText}>{(item.name || item.nom || '?').charAt(0).toUpperCase()}</Text>
                 </View>
                 <View style={styles.details}>
-                    <Text style={styles.name}>{item.nom}</Text>
-                    <Text style={styles.subtext}>📞 {item.telephone}</Text>
-                    <Text style={styles.subtext}>✉️ {item.email}</Text>
-                    <View style={styles.pointsContainer}>
+                    <Text style={styles.userName}>{item.name || item.nom}</Text>
+                    <Text style={styles.userEmail}>{item.tel || item.telephone || 'Pas de tel'}</Text>
+                    <Text style={styles.userSubtext}>{item.email || 'Pas d\'email'}</Text>
+                    <View style={styles.pointsBadge}>
                         <Ionicons name="star" size={12} color={Colors.secondary} />
                         <Text style={styles.pointsText}>{item.points || 0} pts</Text>
                     </View>
@@ -130,26 +147,24 @@ const AdminClientScreen = ({ navigation }) => {
                     {canEdit && (
                         <TouchableOpacity onPress={() => {
                             setEditClient(item);
-                            setNom(item.nom || '');
-                            setTelephone(item.telephone?.toString() || '');
+                            setNom(item.name || item.nom || '');
+                            setTelephone(item.tel || item.telephone || '+229');
                             setEmail(item.email || '');
+                            setPassword('');
                             setModalVisible(true);
-                        }} style={styles.actionBtn}>
-                            <Ionicons name="pencil" size={20} color={Colors.primary} />
+                            setShowPassword(false);
+                        }} style={styles.actionIcon}>
+                            <Ionicons name="pencil-outline" size={20} color={Colors.primary} />
                         </TouchableOpacity>
                     )}
                     {canDelete && (
-                        <TouchableOpacity onPress={() => handleDelete(item.id, item.nom)} style={styles.actionBtn}>
-                            <Ionicons name="trash" size={20} color={Colors.error} />
+                        <TouchableOpacity onPress={() => handleDelete(item.id, item.name || item.nom)} style={styles.actionIcon}>
+                            <Ionicons name="trash-outline" size={20} color={Colors.error} />
                         </TouchableOpacity>
                     )}
                 </View>
             )}
         </View>
-    );
-
-    if (loading) return (
-        <View style={styles.center}><ActivityIndicator size="large" color={Colors.secondary} /></View>
     );
 
     return (
@@ -165,34 +180,72 @@ const AdminClientScreen = ({ navigation }) => {
             )}
 
             <View style={styles.header}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 15 }}>
-                        <Ionicons name="arrow-back" size={24} color={Colors.primary} />
-                    </TouchableOpacity>
-                    <Text style={styles.count}>{clients.length} Client(s)</Text>
-                </View>
-                {canCreate && (
-                    <TouchableOpacity style={styles.addBtn} onPress={() => { resetForm(); setModalVisible(true); }}>
-                        <Ionicons name="add" size={24} color="#FFF" />
-                        <Text style={styles.addBtnText}>Nouveau Client</Text>
-                    </TouchableOpacity>
+                {!showSearch ? (
+                    <>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                            <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 15 }}>
+                                <Ionicons name="arrow-back" size={24} color={Colors.primary} />
+                            </TouchableOpacity>
+                            <Text style={styles.count}>{total} Client(s)</Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <TouchableOpacity
+                                onPress={() => setShowSearch(true)}
+                                style={{ marginRight: 15 }}
+                            >
+                                <Ionicons name="search" size={24} color={Colors.textLight} />
+                            </TouchableOpacity>
+                            {canExport && (
+                                <TouchableOpacity
+                                    onPress={() => exportToCsv('admin/clients-export', 'clients')}
+                                    style={{ marginRight: 15 }}
+                                >
+                                    <Ionicons name="download-outline" size={24} color={Colors.secondary} />
+                                </TouchableOpacity>
+                            )}
+                            {canCreate && (
+                                <TouchableOpacity style={styles.addBtn} onPress={() => { resetForm(); setModalVisible(true); }}>
+                                    <Ionicons name="add" size={22} color="#FFF" />
+                                    <Text style={styles.addBtnText}>Créer</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    </>
+                ) : (
+                    <View style={styles.searchBar}>
+                        <Ionicons name="search" size={20} color={Colors.textLight} style={{ marginRight: 10 }} />
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Rechercher..."
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                            autoFocus
+                        />
+                        <TouchableOpacity onPress={() => { setShowSearch(false); setSearchQuery(''); }}>
+                            <Ionicons name="close-circle" size={22} color={Colors.textLight} />
+                        </TouchableOpacity>
+                    </View>
                 )}
             </View>
 
-            <FlatList
-                data={clients}
-                renderItem={renderItem}
-                keyExtractor={item => item.id.toString()}
-                contentContainerStyle={styles.list}
-                onRefresh={fetchClients}
-                refreshing={refreshing}
-                ListEmptyComponent={
-                    <View style={styles.empty}>
-                        <Ionicons name="people-outline" size={60} color={Colors.textLight} />
-                        <Text style={styles.emptyText}>Aucun client</Text>
-                    </View>
-                }
-            />
+            {loading && clients.length === 0 ? (
+                <View style={styles.center}><ActivityIndicator size="large" color={Colors.secondary} /></View>
+            ) : (
+                <FlatList
+                    data={clients}
+                    renderItem={renderItem}
+                    keyExtractor={item => item.id.toString()}
+                    contentContainerStyle={styles.list}
+                    onRefresh={fetchClients}
+                    refreshing={refreshing}
+                    ListEmptyComponent={
+                        <View style={styles.empty}>
+                            <Ionicons name="people-outline" size={60} color={Colors.textLight} />
+                            <Text style={styles.emptyText}>Aucun client</Text>
+                        </View>
+                    }
+                />
+            )}
 
             <Modal visible={modalVisible} transparent animationType="fade">
                 <KeyboardAvoidingView
@@ -201,49 +254,64 @@ const AdminClientScreen = ({ navigation }) => {
                 >
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>{editClient ? 'Modifier Client' : 'Nouveau Client'}</Text>
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            <Text style={styles.label}>Nom complet *</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Nom complet"
+                                placeholderTextColor={Colors.textLight}
+                                value={nom}
+                                onChangeText={setNom}
+                            />
 
-                        <Text style={styles.label}>Nom complet *</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Nom complet"
-                            placeholderTextColor={Colors.textLight}
-                            value={nom}
-                            onChangeText={setNom}
-                            autoFocus
-                        />
+                            <Text style={styles.label}>Téléphone *</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Téléphone"
+                                placeholderTextColor={Colors.textLight}
+                                value={telephone}
+                                onChangeText={setTelephone}
+                                keyboardType="phone-pad"
+                            />
 
-                        <Text style={styles.label}>Téléphone * (chiffres uniquement)</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Téléphone"
-                            placeholderTextColor={Colors.textLight}
-                            value={telephone}
-                            onChangeText={setTelephone}
-                            keyboardType="number-pad"
-                        />
+                            <Text style={styles.label}>Email (optionnel)</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Email"
+                                placeholderTextColor={Colors.textLight}
+                                value={email}
+                                onChangeText={setEmail}
+                                keyboardType="email-address"
+                                autoCapitalize="none"
+                            />
 
-                        <Text style={styles.label}>Email *</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Email"
-                            placeholderTextColor={Colors.textLight}
-                            value={email}
-                            onChangeText={setEmail}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                        />
+                            <Text style={styles.label}>Mot de passe {editClient && '(laisser vide pour ne pas changer)'}</Text>
+                            <View style={styles.passwordContainer}>
+                                <TextInput
+                                    style={styles.passwordInput}
+                                    placeholder="Mot de passe"
+                                    placeholderTextColor={Colors.textLight}
+                                    value={password}
+                                    onChangeText={setPassword}
+                                    secureTextEntry={!showPassword}
+                                />
+                                <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                                    <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color={Colors.textLight} />
+                                </TouchableOpacity>
+                            </View>
 
-                        <View style={styles.modalActions}>
-                            <TouchableOpacity style={styles.cancelBtn} onPress={() => { setModalVisible(false); resetForm(); }}>
-                                <Text style={styles.cancelText}>Annuler</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
-                                {saving
-                                    ? <ActivityIndicator size="small" color="#FFF" />
-                                    : <Text style={styles.saveText}>Enregistrer</Text>
-                                }
-                            </TouchableOpacity>
-                        </View>
+                            <View style={styles.modalActions}>
+                                <TouchableOpacity style={styles.cancelBtn} onPress={() => { setModalVisible(false); resetForm(); }}>
+                                    <Text style={styles.cancelText}>Annuler</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
+                                    {saving
+                                        ? <ActivityIndicator size="small" color="#FFF" />
+                                        : <Text style={styles.saveText}>Enregistrer</Text>
+                                    }
+                                </TouchableOpacity>
+                            </View>
+                        </ScrollView>
                     </View>
                 </KeyboardAvoidingView>
             </Modal>
@@ -271,43 +339,48 @@ const styles = StyleSheet.create({
     addBtn: { backgroundColor: Colors.secondary, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12 },
     addBtnText: { color: '#FFF', marginLeft: 5, fontWeight: '600', fontSize: 13 },
     list: { padding: 16, flexGrow: 1 },
-    card: { backgroundColor: Colors.surface, borderRadius: 16, padding: 16, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', elevation: 2 },
-    info: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-    avatar: { width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.secondary + '20', justifyContent: 'center', alignItems: 'center', marginRight: 14 },
-    avatarText: { fontSize: 20, color: Colors.secondary, fontWeight: 'bold' },
-    details: { flex: 1 },
-    name: { fontSize: 15, fontWeight: 'bold', color: Colors.primary },
-    subtext: { fontSize: 12, color: Colors.textLight, marginTop: 2 },
-    pointsContainer: {
+    card: {
+        backgroundColor: Colors.surface,
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 12,
         flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: Colors.secondary + '15',
-        alignSelf: 'flex-start',
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 8,
-        marginTop: 6,
-        gap: 4,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
     },
-    pointsText: {
-        fontSize: 11,
-        fontFamily: 'Poppins_600SemiBold',
-        color: Colors.secondary,
-    },
+    userInfo: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+    avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: Colors.primary + '10', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+    avatarText: { fontSize: 18, color: Colors.primary, fontFamily: 'Poppins_700Bold' },
+    details: { flex: 1 },
+    userName: { fontSize: 15, fontFamily: 'Poppins_600SemiBold', color: Colors.primary },
+    userEmail: { fontSize: 12, fontFamily: 'Poppins_400Regular', color: Colors.textLight },
+    userSubtext: { fontSize: 11, fontFamily: 'Poppins_400Regular', color: Colors.textLight, marginTop: 1 },
+    pointsBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.secondary + '15', alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, marginTop: 6, gap: 4 },
+    pointsText: { fontSize: 10, fontFamily: 'Poppins_700Bold', color: Colors.secondary },
     actions: { flexDirection: 'row' },
-    actionBtn: { padding: 10, marginLeft: 4 },
+    actionIcon: { padding: 8, marginLeft: 4 },
     empty: { alignItems: 'center', paddingTop: 80 },
     emptyText: { fontSize: 15, color: Colors.textLight, marginTop: 15 },
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', alignItems: 'center' },
-    modalContent: { backgroundColor: Colors.surface, width: '88%', padding: 25, borderRadius: 20 },
-    modalTitle: { fontSize: 18, fontWeight: 'bold', color: Colors.primary, marginBottom: 20 },
-    label: { fontSize: 11, fontWeight: '600', color: Colors.textLight, marginBottom: 6, textTransform: 'uppercase' },
-    input: { backgroundColor: Colors.background, borderRadius: 10, padding: 14, marginBottom: 14, fontSize: 15, color: Colors.primary },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
+    modalContent: { backgroundColor: Colors.surface, borderRadius: 24, padding: 24, maxHeight: '90%' },
+    modalTitle: { fontSize: 18, fontFamily: 'Poppins_700Bold', color: Colors.primary, marginBottom: 20 },
+    label: { fontSize: 12, fontFamily: 'Poppins_600SemiBold', color: Colors.textLight, marginBottom: 6 },
+    input: { backgroundColor: Colors.background, borderRadius: 12, padding: 14, marginBottom: 16, fontSize: 14, color: Colors.primary, borderWidth: 1, borderColor: Colors.border, fontFamily: 'Poppins_400Regular' },
+    passwordContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.background, borderRadius: 12, borderWidth: 1, borderColor: Colors.border, marginBottom: 16 },
+    passwordInput: { flex: 1, padding: 14, fontFamily: 'Poppins_400Regular', color: Colors.primary, fontSize: 14 },
+    eyeIcon: { paddingHorizontal: 15 },
     modalActions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 10 },
     cancelBtn: { marginRight: 16, padding: 12 },
-    cancelText: { color: Colors.textLight, fontWeight: '600' },
+    cancelText: { color: Colors.textLight, fontFamily: 'Poppins_600SemiBold' },
     saveBtn: { backgroundColor: Colors.secondary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, minWidth: 110, alignItems: 'center' },
-    saveText: { color: '#FFF', fontWeight: 'bold' }
+    saveText: { color: '#FFF', fontFamily: 'Poppins_700Bold' },
+    searchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.background, borderRadius: 12, paddingHorizontal: 12, height: 45 },
+    searchInput: { flex: 1, height: '100%', fontFamily: 'Poppins_400Regular', fontSize: 14, color: Colors.primary },
 });
 
 export default AdminClientScreen;

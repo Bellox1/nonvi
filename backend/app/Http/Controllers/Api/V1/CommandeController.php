@@ -34,8 +34,8 @@ class CommandeController extends Controller
             'items' => 'required|array|min:1',
             'items.*.produit_id' => 'required|exists:produits,id',
             'items.*.quantite' => 'required|integer|min:1',
-            'type_retrait' => 'required|string|in:sur_place,livraison',
-            'ville_livraison' => 'required_if:type_retrait,livraison|nullable|string',
+            'type_retrait' => 'required|string|in:sur_place',
+            'ville_livraison' => 'required|string',
         ]);
 
         $prix_total_produits = 0;
@@ -53,11 +53,16 @@ class CommandeController extends Controller
             ];
         }
         
-        $prix_livraison = ($request->type_retrait === 'livraison') ? 1000 : 0;
-        $prix_total = $prix_total_produits + $prix_livraison;
+        $prix_livraison = 0; // Fixed at 0 per user preference
+        $prix_total = $prix_total_produits;
+
+        if ($prix_total < 100) {
+            return response()->json(['message' => 'Le montant minimum pour une commande est de 100 CFA.'], 422);
+        }
+        $prix_total += $prix_livraison;
 
         try {
-            $transaction = Transaction::create([
+            $params = [
                 "description" => "Paiement Commande Boutique",
                 "amount" => (int) $prix_total,
                 "currency" => ["iso" => "XOF"],
@@ -66,7 +71,10 @@ class CommandeController extends Controller
                     "firstname" => auth()->user()->name,
                     "email" => auth()->user()->email ?? 'customer@nonviplus.com',
                 ]
-            ]);
+            ];
+            \Log::info('FedaPay Commande Params:', $params);
+
+            $transaction = Transaction::create($params);
 
             $token = $transaction->generateToken();
 
@@ -88,11 +96,30 @@ class CommandeController extends Controller
                 'transaction_id' => $transaction->id
             ], 201);
         } catch (\Exception $e) {
-            \Log::error('FedaPay Commande Error: ' . $e->getMessage(), [
+            $errorMessage = $e->getMessage();
+            $errorDetails = [];
+
+            if ($e instanceof \FedaPay\Error\Base) {
+                $errorDetails = $e->getJsonBody();
+                if (isset($errorDetails['errors']) && is_array($errorDetails['errors'])) {
+                    $allErrors = [];
+                    foreach ($errorDetails['errors'] as $field => $messages) {
+                        $allErrors[] = (is_array($messages) ? implode(', ', $messages) : $messages);
+                    }
+                    if (!empty($allErrors)) {
+                        $errorMessage = implode(' ; ', $allErrors);
+                    }
+                }
+            }
+
+            \Log::error('FedaPay Commande Error: ' . $errorMessage, [
                 'user' => auth()->user(),
+                'details' => $errorDetails,
                 'exception' => $e
             ]);
-            return response()->json(['message' => 'Erreur FedaPay: ' . $e->getMessage()], 500);
+
+            $statusCode = ($e instanceof \FedaPay\Error\Base) ? 422 : 500;
+            return response()->json(['message' => 'Erreur de paiement: ' . $errorMessage], $statusCode);
         }
     }
 }

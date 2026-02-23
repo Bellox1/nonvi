@@ -88,14 +88,14 @@ const HomeScreen = ({ navigation }) => {
             title: 'À Propos',
             icon: 'information-circle',
             color: '#6366F1',
-            screen: 'About',
+            screen: 'DrawerAbout',
             subtitle: 'Qui sommes-nous ?'
         },
         {
             title: 'Aide & Support',
             icon: 'help-circle',
             color: '#10B981',
-            screen: 'Help',
+            screen: 'DrawerHelp',
             subtitle: 'Besoin d\'aide ?'
         },
     ];

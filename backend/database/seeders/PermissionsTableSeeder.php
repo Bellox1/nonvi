@@ -222,6 +222,10 @@ class PermissionsTableSeeder extends Seeder
                 'id'    => 53,
                 'title' => 'revenue_show',
             ],
+            [
+                'id'    => 54,
+                'title' => 'export_csv',
+            ],
         ];
 
         foreach ($permissions as $permission) {

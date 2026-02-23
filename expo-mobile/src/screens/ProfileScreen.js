@@ -181,12 +181,22 @@ const ProfileScreen = ({ navigation }) => {
         }
     };
 
-    const handleDeleteTrigger = () => {
+    const handleDeleteTrigger = async () => {
         if (!currentPassword) {
             showToast('Veuillez entrer votre mot de passe', 'warning');
             return;
         }
-        setDeleteStep(2);
+
+        setLoadingDelete(true);
+        try {
+            await client.post('/profile/verify-password', { password: currentPassword });
+            setDeleteStep(2);
+        } catch (e) {
+            const msg = e.response?.data?.message || 'Mot de passe actuel incorrect';
+            showToast(msg, 'error');
+        } finally {
+            setLoadingDelete(false);
+        }
     };
 
     const handleSendDeleteOtp = async (type) => {
@@ -268,7 +278,7 @@ const ProfileScreen = ({ navigation }) => {
             style={styles.container}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
         >
-            <Toast ref={toastRef} />
+            {!deleteModalVisible && !showVerificationModal && <Toast ref={toastRef} />}
 
             {/* Header with Menu Button */}
             <View style={styles.topNav}>
@@ -322,7 +332,7 @@ const ProfileScreen = ({ navigation }) => {
                     {/* HELP LINK */}
                     <TouchableOpacity
                         style={styles.helpLink}
-                        onPress={() => navigation.navigate('Help')}
+                        onPress={() => navigation.navigate('DrawerHelp')}
                     >
                         <Ionicons name="help-circle-outline" size={24} color={Colors.secondary} />
                         <Text style={styles.helpLinkText}>Aide & Support</Text>
@@ -493,6 +503,7 @@ const ProfileScreen = ({ navigation }) => {
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                     style={styles.modalOverlay}
                 >
+                    {deleteModalVisible && <Toast ref={toastRef} />}
                     <View style={styles.modalContent}>
                         <View style={styles.modalIconBox}>
                             <Ionicons name="warning" size={30} color={Colors.error} />
@@ -538,8 +549,13 @@ const ProfileScreen = ({ navigation }) => {
                                     <TouchableOpacity
                                         style={styles.deleteBtn}
                                         onPress={handleDeleteTrigger}
+                                        disabled={loadingDelete}
                                     >
-                                        <Text style={styles.deleteBtnText}>Continuer</Text>
+                                        {loadingDelete ? (
+                                            <ActivityIndicator color="#FFF" />
+                                        ) : (
+                                            <Text style={styles.deleteBtnText}>Continuer</Text>
+                                        )}
                                     </TouchableOpacity>
                                 </View>
                             </>
@@ -631,6 +647,7 @@ const ProfileScreen = ({ navigation }) => {
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                     style={styles.modalOverlay}
                 >
+                    {showVerificationModal && <Toast ref={toastRef} />}
                     <View style={styles.modalContent}>
                         <TouchableOpacity
                             style={styles.closeModalBtn}

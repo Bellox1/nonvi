@@ -160,6 +160,22 @@ class AuthController extends Controller
             ]);
         });
     }
+
+    public function verifyPassword(Request $request)
+    {
+        $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        if (!Hash::check($request->password, $request->user()->password)) {
+            throw ValidationException::withMessages([
+                'password' => ['Le mot de passe actuel est incorrect.'],
+            ]);
+        }
+
+        return response()->json(['message' => 'Mot de passe correct']);
+    }
+
     public function deleteAccount(Request $request)
     {
         $request->validate([

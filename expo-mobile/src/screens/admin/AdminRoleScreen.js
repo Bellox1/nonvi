@@ -63,6 +63,7 @@ const PERM_LABELS = {
     setting_access: 'Accès Module Paramètres/Tarifs',
     setting_edit: 'Modifier les Tarifs',
     revenue_show: 'Voir les revenus (Dashboard)',
+    dashboard_access: 'Accès au Tableau de Bord',
 };
 
 const getLabel = (slug) =>
@@ -70,6 +71,7 @@ const getLabel = (slug) =>
 
 // Module display names (order matters for display)
 const MODULE_ORDER = [
+    { key: 'dashboard', label: 'Accès Principal' },
     { key: 'user_management', label: 'Gestion Utilisateurs' },
     { key: 'user', label: 'Utilisateurs' },
     { key: 'role', label: 'Rôles' },
@@ -184,13 +186,32 @@ const AdminRoleScreen = ({ navigation }) => {
             } else {
                 await client.post('/admin/roles', data);
             }
+
+            // Refresh user to catch permission changes for the current account
+            const freshUser = await refreshUser();
+            const stillHasDashboardAccess = freshUser?.roles?.some(role =>
+                role.permissions?.some(p => p.title === 'dashboard_access')
+            );
+
+            if (!stillHasDashboardAccess) {
+                setModalVisible(false);
+                resetForm();
+                Alert.alert('Accès révoqué', 'Vos droits d\'accès ont été modifiés. Vous allez être redirigé.');
+                navigation.navigate('MainTabs', { screen: 'Home' });
+                return;
+            }
+
             await fetchData();
-            await refreshUser();
             setModalVisible(false);
             resetForm();
             Alert.alert('Succès', editRole ? 'Rôle modifié' : 'Rôle créé');
         } catch (e) {
-            Alert.alert('Erreur', e.response?.data?.message || 'Echec de l\'enregistrement');
+            if (e.response?.status === 403) {
+                Alert.alert('Accès refusé', 'Vos droits ne vous permettent plus d\'effectuer cette action.');
+                navigation.navigate('MainTabs', { screen: 'Home' });
+            } else {
+                Alert.alert('Erreur', e.response?.data?.message || 'Echec de l\'enregistrement');
+            }
         } finally {
             setSaving(false);
         }
@@ -198,7 +219,8 @@ const AdminRoleScreen = ({ navigation }) => {
 
     const resetForm = () => {
         setTitle('');
-        setSelectedPermissions([]);
+        const dashPerm = permissions.find(p => p.title === 'dashboard_access');
+        setSelectedPermissions(dashPerm ? [dashPerm.id] : []);
         setEditRole(null);
     };
 

@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 
 import { useAuth } from '../../context/AuthContext';
+import { exportToCsv } from '../../utils/export';
 
 const AdminColisScreen = ({ navigation }) => {
     const { hasPermission } = useAuth();
@@ -26,6 +27,7 @@ const AdminColisScreen = ({ navigation }) => {
     const canShow = hasPermission('coli_show');
     const canEdit = hasPermission('coli_edit');
     const canDelete = hasPermission('coli_delete');
+    const canExport = hasPermission('export_csv');
 
     const [colis, setColis] = useState([]);
     const [stations, setStations] = useState([]);
@@ -34,6 +36,8 @@ const AdminColisScreen = ({ navigation }) => {
     const [refreshing, setRefreshing] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
     const [editColis, setEditColis] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [showSearch, setShowSearch] = useState(false);
 
     // Form state
     const [destNom, setDestNom] = useState('');
@@ -47,16 +51,26 @@ const AdminColisScreen = ({ navigation }) => {
     const [expediteurTel, setExpediteurTel] = useState('');
     const [isManualSender, setIsManualSender] = useState(false);
 
-    const fetchData = async () => {
+    const fetchColis = async (search = searchQuery) => {
         try {
-            const [colisRes, stationsRes, clientsRes] = await Promise.all([
-                client.get('/admin/colis'),
+            const params = search ? { search } : {};
+            const res = await client.get('/admin/colis', { params });
+            setColis(res.data.data || res.data);
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const [stationsRes, clientsRes] = await Promise.all([
                 client.get('/admin/stations'),
                 client.get('/admin/clients')
             ]);
-            setColis(colisRes.data.data);
+            await fetchColis();
             setStations(stationsRes.data.data || stationsRes.data);
-            setClients(clientsRes.data.data);
+            setClients(clientsRes.data.data || clientsRes.data);
         } catch (e) {
             Alert.alert('Erreur', 'Impossible de charger les données');
         } finally {
@@ -64,6 +78,13 @@ const AdminColisScreen = ({ navigation }) => {
             setRefreshing(false);
         }
     };
+
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(() => {
+            fetchColis(searchQuery);
+        }, 500);
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchQuery]);
 
     useEffect(() => {
         fetchData();
@@ -289,21 +310,59 @@ const AdminColisScreen = ({ navigation }) => {
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor={Colors.surface} />
             <View style={styles.header}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 15 }}>
-                        <Ionicons name="arrow-back" size={24} color={Colors.primary} />
-                    </TouchableOpacity>
-                    <Text style={styles.count}>{colis.length} Colis</Text>
-                </View>
-                {canCreate && (
-                    <TouchableOpacity style={styles.addBtn} onPress={() => { resetForm(); setModalVisible(true); }}>
-                        <Ionicons name="add" size={24} color="#FFF" />
-                        <Text style={styles.addBtnText}>Nouveau Colis</Text>
-                    </TouchableOpacity>
+                {!showSearch ? (
+                    <>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                            <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 15 }}>
+                                <Ionicons name="arrow-back" size={24} color={Colors.primary} />
+                            </TouchableOpacity>
+                            <Text style={styles.count}>{colis.length} Colis</Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <TouchableOpacity
+                                onPress={() => setShowSearch(true)}
+                                style={{ marginRight: 15 }}
+                            >
+                                <Ionicons name="search" size={24} color={Colors.textLight} />
+                            </TouchableOpacity>
+                            {canExport && (
+                                <TouchableOpacity
+                                    onPress={() => exportToCsv('admin/colis-export', 'colis')}
+                                    style={{ marginRight: 15 }}
+                                >
+                                    <Ionicons name="download-outline" size={24} color={Colors.secondary} />
+                                </TouchableOpacity>
+                            )}
+                            {canCreate && (
+                                <TouchableOpacity style={styles.addBtn} onPress={() => { resetForm(); setModalVisible(true); }}>
+                                    <Ionicons name="add" size={22} color="#FFF" />
+                                    <Text style={styles.addBtnText}>Créer</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    </>
+                ) : (
+                    <View style={styles.searchBar}>
+                        <Ionicons name="search" size={20} color={Colors.textLight} style={{ marginRight: 10 }} />
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Destinataire, Tel..."
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                            autoFocus
+                        />
+                        <TouchableOpacity onPress={() => { setShowSearch(false); setSearchQuery(''); }}>
+                            <Ionicons name="close-circle" size={22} color={Colors.textLight} />
+                        </TouchableOpacity>
+                    </View>
                 )}
             </View>
 
-            {loading ? <ActivityIndicator size="large" color={Colors.secondary} style={{ marginTop: 50 }} /> :
+            {loading && colis.length === 0 ? (
+                <View style={styles.center}>
+                    <ActivityIndicator size="large" color={Colors.secondary} style={{ marginTop: 50 }} />
+                </View>
+            ) : (
                 <FlatList
                     data={colis}
                     renderItem={renderItem}
@@ -311,7 +370,8 @@ const AdminColisScreen = ({ navigation }) => {
                     contentContainerStyle={styles.list}
                     onRefresh={fetchData}
                     refreshing={refreshing}
-                />}
+                />
+            )}
 
             <Modal visible={modalVisible} animationType="slide">
                 <View style={styles.modalBg}>
@@ -506,7 +566,23 @@ const styles = StyleSheet.create({
     input: { backgroundColor: Colors.background, borderRadius: 12, padding: 15, marginBottom: 15, fontFamily: 'Poppins_400Regular' },
     pickerContainer: { backgroundColor: Colors.background, borderRadius: 12, marginBottom: 15, overflow: 'hidden' },
     saveBtn: { backgroundColor: Colors.secondary, padding: 18, borderRadius: 12, alignItems: 'center', marginTop: 10, marginBottom: 50 },
-    saveText: { color: '#FFF', fontSize: 16, fontFamily: 'Poppins_700Bold' }
+    saveText: { color: '#FFF', fontSize: 16, fontFamily: 'Poppins_700Bold' },
+    searchBar: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.background,
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        height: 45,
+    },
+    searchInput: {
+        flex: 1,
+        height: '100%',
+        fontFamily: 'Poppins_400Regular',
+        fontSize: 14,
+        color: Colors.primary,
+    },
 });
 
 export default AdminColisScreen;

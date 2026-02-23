@@ -14,7 +14,7 @@ import Colors from '../theme/Colors';
 import { Ionicons } from '@expo/vector-icons';
 
 const CustomDrawerContent = (props) => {
-    const { user, logout } = useAuth();
+    const { user, logout, hasPermission } = useAuth();
     const { state, navigation } = props;
     const [language, setLanguage] = React.useState('fr');
 
@@ -33,7 +33,7 @@ const CustomDrawerContent = (props) => {
         }
     }
 
-    const isSystemUser = user?.roles && user.roles.length > 0;
+    const canAccessAdmin = hasPermission('dashboard_access');
 
     const navigationItems = [
         { label: 'Accueil', icon: 'home-outline', activeIcon: 'home', screen: 'Home', type: 'tab' },
@@ -96,7 +96,7 @@ const CustomDrawerContent = (props) => {
 
                 <View style={styles.divider} />
 
-                {isSystemUser && (
+                {canAccessAdmin && (
                     <TouchableOpacity
                         style={[styles.drawerItem, activeRouteName === 'Admin' && styles.activeDrawerItem]}
                         onPress={() => navigation.navigate('Admin')}

@@ -110,8 +110,8 @@ const AdminNavigator = () => (
 );
 
 const DrawerNavigator = () => {
-    const { user } = useAuth();
-    const isSystemUser = user?.roles && user.roles.length > 0;
+    const { user, hasPermission } = useAuth();
+    const canAccessAdmin = hasPermission('dashboard_access');
 
     return (
         <Drawer.Navigator
@@ -134,7 +134,7 @@ const DrawerNavigator = () => {
                 }}
             />
 
-            {isSystemUser && (
+            {canAccessAdmin && (
                 <Drawer.Screen
                     name="Admin"
                     component={AdminNavigator}
@@ -151,7 +151,7 @@ const DrawerNavigator = () => {
                 options={({ navigation }) => ({
                     title: 'À Propos',
                     headerLeft: () => (
-                        <TouchableOpacity style={{ marginLeft: 20 }} onPress={() => navigation.dispatch(DrawerActions.openDrawer())}>
+                        <TouchableOpacity style={{ marginLeft: 20 }} onPress={() => navigation.toggleDrawer()}>
                             <Ionicons name="apps" size={28} color={Colors.primary} />
                         </TouchableOpacity>
                     ),
@@ -163,7 +163,7 @@ const DrawerNavigator = () => {
                 options={({ navigation }) => ({
                     title: 'Aide & Support',
                     headerLeft: () => (
-                        <TouchableOpacity style={{ marginLeft: 20 }} onPress={() => navigation.dispatch(DrawerActions.openDrawer())}>
+                        <TouchableOpacity style={{ marginLeft: 20 }} onPress={() => navigation.toggleDrawer()}>
                             <Ionicons name="apps" size={28} color={Colors.primary} />
                         </TouchableOpacity>
                     ),
@@ -231,7 +231,7 @@ const AppNavigator = () => {
                             headerStyle: { backgroundColor: Colors.surface },
                             headerTitleStyle: { fontFamily: 'Poppins_600SemiBold' },
                             headerLeft: () => (
-                                <TouchableOpacity style={{ marginLeft: 20 }} onPress={() => navigation.getParent()?.dispatch(DrawerActions.openDrawer())}>
+                                <TouchableOpacity style={{ marginLeft: 20 }} onPress={() => navigation.goBack()}>
                                     <Ionicons name="apps" size={28} color={Colors.primary} />
                                 </TouchableOpacity>
                             ),
@@ -246,7 +246,7 @@ const AppNavigator = () => {
                             headerStyle: { backgroundColor: Colors.surface },
                             headerTitleStyle: { fontFamily: 'Poppins_600SemiBold' },
                             headerLeft: () => (
-                                <TouchableOpacity style={{ marginLeft: 20 }} onPress={() => navigation.getParent()?.dispatch(DrawerActions.openDrawer())}>
+                                <TouchableOpacity style={{ marginLeft: 20 }} onPress={() => navigation.goBack()}>
                                     <Ionicons name="apps" size={28} color={Colors.primary} />
                                 </TouchableOpacity>
                             ),

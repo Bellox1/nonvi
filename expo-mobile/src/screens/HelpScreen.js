@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '../theme/Colors';
@@ -7,24 +7,29 @@ import Colors from '../theme/Colors';
 const HelpScreen = ({ navigation }) => {
     const helpItems = [
         {
-            title: "Réservations de voyage",
-            description: "Pour réserver un trajet, allez dans l'onglet 'Réservation'. Sélectionnez votre ville de départ et votre destination. Vous devez ensuite choisir la date et l'heure de départ souhaitées. Une fois la réservation confirmée, elle apparaîtra dans votre historique."
+            icon: "bus-outline",
+            title: "Réserver un voyage",
+            description: "1. Allez dans 'Réservation'.\n2. Choisissez votre ville de départ et d'arrivée.\n3. Sélectionnez la date et cliquez sur 'Rechercher'.\n4. Payez via Momo ou Carte.\n5. Votre ticket (QR Code) est généré dans l'Historique."
         },
         {
-            title: "Gestion des tickets",
-            description: "Le paiement de vos tickets s'effectue directement à la station de départ avant l'embarquement. Assurez-vous d'arriver au moins 30 minutes avant l'heure de départ prévue pour valider votre réservation."
+            icon: "basket-outline",
+            title: "Acheter sur Santé Plus",
+            description: "1. Allez dans 'Santé Plus' et ajoutez vos produits au panier.\n2. Sélectionnez votre Ville et Station de retrait.\n3. Validez le paiement.\n4. Retirez vos produits en station sur présentation de votre preuve d'achat."
         },
         {
-            title: "Livraison de colis",
-            description: "Nous assurons le transport sécurisé de vos marchandises entre nos différentes stations. Le dépôt et le retrait se font au guichet colis de chaque station Nonvi."
+            icon: "qr-code-outline",
+            title: "Utiliser mon ticket",
+            description: "Le jour du départ, ouvrez 'Historique' et cliquez sur votre réservation. Présentez le QR Code qui s'affiche au contrôleur lors de l'embarquement."
         },
         {
-            title: "Santé Plus (Boutique)",
-            description: "Commandez vos produits de santé et choisissez entre le retrait en station ou la livraison à domicile. Le suivi de vos commandes est disponible dans l'historique."
+            icon: "person-outline",
+            title: "Gérer mon profil",
+            description: "Allez dans 'Profil' pour modifier vos infos (nom, tel, mot de passe). Toute modification sensible nécessite une validation par code OTP."
         },
         {
-            title: "Points de Fidélité",
-            description: "Chaque ticket de transport payé et validé vous rapporte des points de fidélité. Ces points sont cumulables et visibles sur votre profil utilisateur."
+            icon: "headset-outline",
+            title: "Assistance & Support",
+            description: "En cas de souci, contactez l'administration via les numéros officiels ou utilisez le bouton 'Aide' dans votre profil pour nous envoyer un message."
         },
     ];
 
@@ -38,14 +43,17 @@ const HelpScreen = ({ navigation }) => {
 
                 {helpItems.map((item, index) => (
                     <View key={index} style={styles.helpSection}>
-                        <Text style={styles.helpTitle}>{item.title}</Text>
+                        <View style={styles.helpHeaderRow}>
+                            <Ionicons name={item.icon} size={22} color={Colors.secondary} style={{ marginRight: 10 }} />
+                            <Text style={styles.helpTitle}>{item.title}</Text>
+                        </View>
                         <Text style={styles.helpDescription}>{item.description}</Text>
                     </View>
                 ))}
 
                 <TouchableOpacity
                     style={styles.aboutLink}
-                    onPress={() => navigation.navigate('About')}
+                    onPress={() => navigation.navigate('DrawerAbout')}
                 >
                     <View style={styles.aboutContent}>
                         <Ionicons name="information-circle-outline" size={22} color={Colors.secondary} />
@@ -55,7 +63,12 @@ const HelpScreen = ({ navigation }) => {
                 </TouchableOpacity>
 
                 <View style={styles.footer}>
-                    <Text style={styles.footerText}>© 2024 Nonvi - Tous droits réservés</Text>
+                    <Text style={styles.poweredByText}>Powered by</Text>
+                    <Image
+                        source={require('../../assets/app/by.png')}
+                        style={styles.footerImage}
+                        resizeMode="contain"
+                    />
                 </View>
             </ScrollView>
         </View>
@@ -93,6 +106,11 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: Colors.border,
     },
+    helpHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
     helpTitle: {
         fontSize: 16,
         fontFamily: 'Poppins_600SemiBold',
@@ -129,12 +147,19 @@ const styles = StyleSheet.create({
     footer: {
         marginTop: 30,
         alignItems: 'center',
-        paddingBottom: 20,
+        paddingBottom: 40,
     },
-    footerText: {
-        fontSize: 12,
-        color: Colors.textLight,
+    poweredByText: {
+        fontSize: 10,
         fontFamily: 'Poppins_400Regular',
+        color: Colors.textLight,
+        marginBottom: 4,
+        opacity: 0.7,
+    },
+    footerImage: {
+        width: 80,
+        height: 28,
+        opacity: 0.6,
     }
 });
 

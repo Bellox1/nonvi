@@ -6,8 +6,37 @@ use App\Http\Controllers\Controller;
 use App\Models\Coli;
 use Illuminate\Http\Request;
 
+use App\Traits\ExportCsvTrait;
+
 class AdminColisController extends Controller
 {
+    use ExportCsvTrait;
+
+    public function export()
+    {
+        if (!\Illuminate\Support\Facades\Gate::allows('export_csv')) {
+            return response()->json(['message' => 'Accès refusé'], 403);
+        }
+
+        $colis = Coli::with(['expediteur', 'station_depart', 'station_arrivee'])->latest()->get();
+        
+        $data = $colis->map(function($c) {
+            return [
+                $c->id,
+                $c->expediteur->nom ?? $c->expediteur_nom ?? 'Inconnu',
+                $c->destinataire_nom,
+                $c->station_depart->nom ?? 'N/A',
+                $c->station_arrivee->nom ?? 'N/A',
+                $c->prix,
+                $c->statut,
+                $c->created_at->format('d/m/Y H:i')
+            ];
+        });
+
+        return $this->downloadCsv($data, 'colis-' . date('Y-m-d'), [
+            'ID', 'Expéditeur', 'Destinataire', 'Départ', 'Arrivée', 'Prix', 'Statut', 'Date'
+        ]);
+    }
     private $statusWeights = [
         'en_attente' => 0,
         'en_cours'   => 1,
@@ -63,15 +92,27 @@ class AdminColisController extends Controller
         return $updates;
     }
 
-    public function index()
+    public function index(Request $request)
     {
         if (!\Illuminate\Support\Facades\Gate::allows('coli_access')) {
             return response()->json(['message' => 'Accès refusé'], 403);
         }
 
-        $colis = Coli::with(['station_depart', 'station_arrivee', 'user', 'expediteur'])
-            ->latest()
-            ->paginate(20);
+        $query = Coli::with(['station_depart', 'station_arrivee', 'user', 'expediteur'])->latest();
+
+        if ($request->has('search')) {
+            $search = $request->get('search');
+            $query->where(function($q) use ($search) {
+                $q->where('destinataire_nom', 'like', "%{$search}%")
+                  ->orWhere('destinataire_tel', 'like', "%{$search}%")
+                  ->orWhereHas('expediteur', function($qe) use ($search) {
+                      $qe->where('name', 'like', "%{$search}%")
+                         ->orWhere('tel', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $colis = $query->paginate(20);
             
         return response()->json($colis);
     }

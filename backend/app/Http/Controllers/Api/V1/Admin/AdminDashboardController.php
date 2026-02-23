@@ -33,8 +33,8 @@ class AdminDashboardController extends Controller
         $stats = [
             'total_reservations' => Reservation::count(),
             'total_users' => User::count(),
-            'total_products' => Produit::count(),
             'total_clients' => User::doesntHave('roles')->count(),
+            'total_products' => Produit::count(),
             'pending_reservations' => Reservation::where('statut', 'en_attente')->count(),
         ];
 

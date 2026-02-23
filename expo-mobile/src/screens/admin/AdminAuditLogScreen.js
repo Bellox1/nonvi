@@ -14,6 +14,7 @@ import {
 import client from '../../api/client';
 import Colors from '../../theme/Colors';
 import { Ionicons } from '@expo/vector-icons';
+import { exportToCsv } from '../../utils/export';
 
 // Map backend description to human-readable French + icon
 const ACTION_MAP = {
@@ -32,6 +33,7 @@ import { useAuth } from '../../context/AuthContext';
 const AdminAuditLogScreen = ({ navigation }) => {
     const { hasPermission } = useAuth();
     const canShowDetails = hasPermission('audit_log_show');
+    const canExport = hasPermission('export_csv');
 
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -85,6 +87,14 @@ const AdminAuditLogScreen = ({ navigation }) => {
                     <Ionicons name="arrow-back" size={24} color={Colors.primary} />
                 </TouchableOpacity>
                 <Text style={styles.title}>Logs d'Audit</Text>
+                <View style={{ flex: 1 }} />
+                {canExport && (
+                    <TouchableOpacity
+                        onPress={() => exportToCsv('admin/logs-export', 'logs')}
+                    >
+                        <Ionicons name="download-outline" size={24} color={Colors.secondary} />
+                    </TouchableOpacity>
+                )}
             </View>
 
             {loading ? <ActivityIndicator size="large" color={Colors.secondary} style={{ marginTop: 50 }} /> :

@@ -24,6 +24,7 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1'], functi
         Route::get('me', 'AuthController@me');
         Route::post('logout', 'AuthController@logout');
         Route::put('profile', 'AuthController@updateProfile');
+        Route::post('profile/verify-password', 'AuthController@verifyPassword');
         Route::delete('profile', 'AuthController@deleteAccount');
 
         // Transport (Reservations)
@@ -48,16 +49,14 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1'], functi
             Route::get('stations', 'AdminStationController@index');
             Route::post('stations', 'AdminStationController@store');
             Route::put('stations/{id}', 'AdminStationController@update');
-            Route::delete('stations/{id}', 'AdminStationController@destroy');
-
-            Route::post('stations', 'AdminStationController@store');
-            Route::put('stations/{id}', 'AdminStationController@update');
+            Route::get('stations-export', 'AdminStationController@export');
             Route::delete('stations/{id}', 'AdminStationController@destroy');
 
             // Produits
             Route::get('produits', 'AdminProduitController@index');
             Route::post('produits', 'AdminProduitController@store');
             Route::put('produits/{id}', 'AdminProduitController@update');
+            Route::get('produits-export', 'AdminProduitController@export');
             Route::delete('produits/{id}', 'AdminProduitController@destroy');
 
             // Clients
@@ -65,6 +64,7 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1'], functi
             Route::post('clients', 'AdminClientController@store');
             Route::put('clients/{id}', 'AdminClientController@update');
             Route::get('clients/{id}', 'AdminClientController@show');
+            Route::get('clients-export', 'AdminClientController@export');
             Route::delete('clients/{id}', 'AdminClientController@destroy');
 
             // Colis
@@ -72,6 +72,7 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1'], functi
             Route::post('colis', 'AdminColisController@store');
             Route::put('colis/{id}', 'AdminColisController@update');
             Route::patch('colis/{id}/status', 'AdminColisController@updateStatus');
+            Route::get('colis-export', 'AdminColisController@export');
             Route::delete('colis/{id}', 'AdminColisController@destroy');
 
             // Reservations
@@ -79,12 +80,14 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1'], functi
             Route::patch('reservations/{id}/status', 'AdminReservationController@updateStatus');
             Route::post('reservations/bulk-status', 'AdminReservationController@bulkUpdateStatus');
             Route::post('reservations/scan', 'AdminReservationController@scan');
+            Route::get('reservations-export', 'AdminReservationController@export');
             Route::delete('reservations/{id}', 'AdminReservationController@destroy');
 
             // Users
             Route::get('users', 'AdminUserController@index');
             Route::post('users', 'AdminUserController@store');
             Route::put('users/{id}', 'AdminUserController@update');
+            Route::get('users-export', 'AdminUserController@export');
             Route::delete('users/{id}', 'AdminUserController@destroy');
 
             // Settings
@@ -100,6 +103,7 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1'], functi
 
             // Logs
             Route::get('logs', 'AdminAuditLogController@index');
+            Route::get('logs-export', 'AdminAuditLogController@export');
             Route::get('logs/{id}', 'AdminAuditLogController@show');
 
             // Publicités

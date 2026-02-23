@@ -6,17 +6,60 @@ use App\Http\Controllers\Controller;
 use App\Models\Reservation;
 use Illuminate\Http\Request;
 
+use App\Traits\ExportCsvTrait;
+
 class AdminReservationController extends Controller
 {
-    public function index()
+    use ExportCsvTrait;
+
+    public function export()
+    {
+        if (!\Illuminate\Support\Facades\Gate::allows('export_csv')) {
+            return response()->json(['message' => 'Accès refusé'], 403);
+        }
+
+        $reservations = \App\Models\Reservation::with(['user', 'station_depart', 'station_arrivee'])->latest()->get();
+        
+        $data = $reservations->map(function($res) {
+            return [
+                $res->id,
+                $res->user->name ?? 'N/A',
+                $res->station_depart->nom ?? 'N/A',
+                $res->station_arrivee->nom ?? 'N/A',
+                $res->nombre_tickets,
+                $res->prix,
+                $res->statut,
+                $res->created_at->format('d/m/Y H:i')
+            ];
+        });
+
+        return $this->downloadCsv($data, 'reservations-' . date('Y-m-d'), [
+            'ID', 'Client', 'Départ', 'Arrivée', 'Tickets', 'Prix', 'Statut', 'Date'
+        ]);
+    }
+    public function index(Request $request)
     {
         if (!\Illuminate\Support\Facades\Gate::allows('reservation_access')) {
             return response()->json(['message' => 'Accès refusé'], 403);
         }
 
-        $reservations = Reservation::with(['user', 'station_depart', 'station_arrivee', 'tickets'])
-            ->latest()
-            ->paginate(20);
+        $query = Reservation::with(['user', 'station_depart', 'station_arrivee', 'tickets'])->latest();
+
+        if ($request->has('search')) {
+            $search = $request->get('search');
+            $query->where(function($q) use ($search) {
+                $q->whereHas('user', function($qu) use ($search) {
+                    $qu->where('name', 'like', "%{$search}%")
+                       ->orWhere('tel', 'like', "%{$search}%");
+                })
+                ->orWhereHas('tickets', function($qt) use ($search) {
+                    $qt->where('code', 'like', "%{$search}%");
+                })
+                ->orWhere('id', 'like', "%{$search}%");
+            });
+        }
+
+        $reservations = $query->paginate(20);
 
         return response()->json($reservations);
     }
