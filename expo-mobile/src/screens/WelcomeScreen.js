@@ -42,8 +42,8 @@ const WelcomeScreen = ({ navigation }) => {
                         const cityList = uniqueCities.join(', ');
                         setSlides(prev => {
                             const newSlides = [...prev];
-                            newSlides[2].title = cityList;
-                            newSlides[2].subtitle = 'Retrouvez-nous dans toutes ces villes du Bénin';
+                            newSlides[2].title = `Naviguer entre ${cityList}`;
+                            newSlides[2].subtitle = 'Un réseau de stations pour vous servir partout au Bénin';
                             return newSlides;
                         });
                     }
