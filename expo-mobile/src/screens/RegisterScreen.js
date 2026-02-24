@@ -130,7 +130,7 @@ const RegisterScreen = ({ navigation }) => {
 
     return (
         <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : null}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.root}
         >
             <StatusBar barStyle="light-content" />
@@ -178,7 +178,7 @@ const RegisterScreen = ({ navigation }) => {
                                 placeholderTextColor={Colors.textLight}
                                 value={name}
                                 onChangeText={setName}
-                                selectionColor={Colors.secondary}
+                                selectionColor={Colors.tertiary}
                             />
                         </View>
 
@@ -191,7 +191,7 @@ const RegisterScreen = ({ navigation }) => {
                                 value={tel}
                                 onChangeText={setTel}
                                 keyboardType="phone-pad"
-                                selectionColor={Colors.secondary}
+                                selectionColor={Colors.tertiary}
                             />
                         </View>
 
@@ -207,7 +207,7 @@ const RegisterScreen = ({ navigation }) => {
                                 autoCapitalize="none"
                                 autoCorrect={false}
                                 textContentType="oneTimeCode"
-                                selectionColor={Colors.secondary}
+                                selectionColor={Colors.tertiary}
                             />
                             <TouchableOpacity
                                 style={styles.eyeBtn}
@@ -253,7 +253,7 @@ const RegisterScreen = ({ navigation }) => {
                                 autoCapitalize="none"
                                 autoCorrect={false}
                                 textContentType="oneTimeCode"
-                                selectionColor={Colors.secondary}
+                                selectionColor={Colors.tertiary}
                             />
                             <TouchableOpacity
                                 style={styles.eyeBtn}

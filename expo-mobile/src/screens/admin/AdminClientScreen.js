@@ -4,6 +4,7 @@ import {
     ActivityIndicator, Alert, Modal, TextInput,
     KeyboardAvoidingView, ScrollView, Platform, StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import client from '../../api/client';
 import Colors from '../../theme/Colors';
 import { Ionicons } from '@expo/vector-icons';
@@ -179,54 +180,56 @@ const AdminClientScreen = ({ navigation }) => {
                 </TouchableOpacity>
             )}
 
-            <View style={styles.header}>
-                {!showSearch ? (
-                    <>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                            <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 15 }}>
-                                <Ionicons name="arrow-back" size={24} color={Colors.primary} />
-                            </TouchableOpacity>
-                            <Text style={styles.count}>{total} Client(s)</Text>
-                        </View>
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <TouchableOpacity
-                                onPress={() => setShowSearch(true)}
-                                style={{ marginRight: 15 }}
-                            >
-                                <Ionicons name="search" size={24} color={Colors.textLight} />
-                            </TouchableOpacity>
-                            {canExport && (
+            <SafeAreaView edges={['top']} style={{ backgroundColor: Colors.surface }}>
+                <View style={styles.header}>
+                    {!showSearch ? (
+                        <>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                                <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 15 }}>
+                                    <Ionicons name="arrow-back" size={24} color={Colors.primary} />
+                                </TouchableOpacity>
+                                <Text style={styles.count} numberOfLines={1}>{total} Client(s)</Text>
+                            </View>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                 <TouchableOpacity
-                                    onPress={() => exportToCsv('admin/clients-export', 'clients')}
+                                    onPress={() => setShowSearch(true)}
                                     style={{ marginRight: 15 }}
                                 >
-                                    <Ionicons name="download-outline" size={24} color={Colors.secondary} />
+                                    <Ionicons name="search" size={24} color={Colors.textLight} />
                                 </TouchableOpacity>
-                            )}
-                            {canCreate && (
-                                <TouchableOpacity style={styles.addBtn} onPress={() => { resetForm(); setModalVisible(true); }}>
-                                    <Ionicons name="add" size={22} color="#FFF" />
-                                    <Text style={styles.addBtnText}>Créer</Text>
-                                </TouchableOpacity>
-                            )}
+                                {canExport && (
+                                    <TouchableOpacity
+                                        onPress={() => exportToCsv('admin/clients-export', 'clients')}
+                                        style={{ marginRight: 15 }}
+                                    >
+                                        <Ionicons name="download-outline" size={24} color={Colors.secondary} />
+                                    </TouchableOpacity>
+                                )}
+                                {canCreate && (
+                                    <TouchableOpacity style={styles.addBtn} onPress={() => { resetForm(); setModalVisible(true); }}>
+                                        <Ionicons name="add" size={22} color="#FFF" />
+                                        <Text style={styles.addBtnText}>Créer</Text>
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+                        </>
+                    ) : (
+                        <View style={styles.searchBar}>
+                            <Ionicons name="search" size={20} color={Colors.textLight} style={{ marginRight: 10 }} />
+                            <TextInput
+                                style={styles.searchInput}
+                                placeholder="Rechercher..."
+                                value={searchQuery}
+                                onChangeText={setSearchQuery}
+                                autoFocus
+                            />
+                            <TouchableOpacity onPress={() => { setShowSearch(false); setSearchQuery(''); }}>
+                                <Ionicons name="close-circle" size={22} color={Colors.textLight} />
+                            </TouchableOpacity>
                         </View>
-                    </>
-                ) : (
-                    <View style={styles.searchBar}>
-                        <Ionicons name="search" size={20} color={Colors.textLight} style={{ marginRight: 10 }} />
-                        <TextInput
-                            style={styles.searchInput}
-                            placeholder="Rechercher..."
-                            value={searchQuery}
-                            onChangeText={setSearchQuery}
-                            autoFocus
-                        />
-                        <TouchableOpacity onPress={() => { setShowSearch(false); setSearchQuery(''); }}>
-                            <Ionicons name="close-circle" size={22} color={Colors.textLight} />
-                        </TouchableOpacity>
-                    </View>
-                )}
-            </View>
+                    )}
+                </View>
+            </SafeAreaView>
 
             {loading && clients.length === 0 ? (
                 <View style={styles.center}><ActivityIndicator size="large" color={Colors.secondary} /></View>
@@ -322,23 +325,23 @@ const AdminClientScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.background },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    errorBanner: { backgroundColor: '#FEE2E2', padding: 16, borderBottomWidth: 1, borderBottomColor: '#FCA5A5' },
+    errorBanner: { backgroundColor: '#FEE2E2', padding: 16 },
     errorText: { color: '#DC2626', fontSize: 13, fontWeight: '600' },
     errorRetry: { color: '#DC2626', fontSize: 11, marginTop: 4 },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 20,
+        paddingHorizontal: 24,
         paddingBottom: 20,
-        paddingTop: Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight || 24) + 15,
+        paddingTop: Platform.OS === 'android' ? 10 : 0,
         backgroundColor: Colors.surface,
-        elevation: 2
+        elevation: 0
     },
     count: { fontSize: 16, color: Colors.textLight, fontWeight: '600' },
     addBtn: { backgroundColor: Colors.secondary, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12 },
     addBtnText: { color: '#FFF', marginLeft: 5, fontWeight: '600', fontSize: 13 },
-    list: { padding: 16, flexGrow: 1 },
+    list: { padding: 16, paddingBottom: 100, flexGrow: 1 },
     card: {
         backgroundColor: Colors.surface,
         borderRadius: 16,

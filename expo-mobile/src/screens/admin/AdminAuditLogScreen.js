@@ -17,6 +17,7 @@ import client from '../../api/client';
 import Colors from '../../theme/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import { exportToCsv } from '../../utils/export';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Map backend description to human-readable French + icon
 const ACTION_MAP = {
@@ -102,20 +103,22 @@ const AdminAuditLogScreen = ({ navigation }) => {
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor={Colors.surface} />
             <Toast ref={toastRef} />
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 15 }}>
-                    <Ionicons name="arrow-back" size={24} color={Colors.primary} />
-                </TouchableOpacity>
-                <Text style={styles.title}>Logs d'Audit</Text>
-                <View style={{ flex: 1 }} />
-                {canExport && (
-                    <TouchableOpacity
-                        onPress={() => exportToCsv('admin/logs-export', 'logs')}
-                    >
-                        <Ionicons name="download-outline" size={24} color={Colors.secondary} />
+            <SafeAreaView edges={['top']} style={{ backgroundColor: Colors.surface }}>
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 15 }}>
+                        <Ionicons name="arrow-back" size={24} color={Colors.primary} />
                     </TouchableOpacity>
-                )}
-            </View>
+                    <Text style={styles.title} numberOfLines={1}>Logs d'Audit</Text>
+                    <View style={{ flex: 1 }} />
+                    {canExport && (
+                        <TouchableOpacity
+                            onPress={() => exportToCsv('admin/logs-export', 'logs')}
+                        >
+                            <Ionicons name="download-outline" size={24} color={Colors.secondary} />
+                        </TouchableOpacity>
+                    )}
+                </View>
+            </SafeAreaView>
 
             {loading ? <ActivityIndicator size="large" color={Colors.secondary} style={{ marginTop: 50 }} /> :
                 <FlatList
@@ -184,7 +187,7 @@ const styles = StyleSheet.create({
     header: {
         paddingHorizontal: 20,
         paddingBottom: 20,
-        paddingTop: Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight || 24) + 15,
+        paddingTop: Platform.OS === 'android' ? 10 : 0,
         backgroundColor: Colors.surface,
         borderBottomWidth: 1,
         borderBottomColor: Colors.border,
@@ -192,7 +195,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     title: { fontSize: 20, fontWeight: 'bold', color: Colors.primary },
-    list: { padding: 15 },
+    list: { padding: 15, paddingBottom: 100 },
     card: { backgroundColor: Colors.surface, borderRadius: 12, padding: 15, marginBottom: 10, elevation: 1 },
     logHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
     actionBadge: { flexDirection: 'row', alignItems: 'center', gap: 6 },

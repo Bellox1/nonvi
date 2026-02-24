@@ -5,7 +5,14 @@ import { Alert } from 'react-native';
 
 const API_URL = 'http://192.168.123.181:8000/api/v1'; // Should match client.js
 
+let exportInProgress = false;
+
 export const exportToCsv = async (endpoint, filename) => {
+    if (exportInProgress) {
+        return;
+    }
+
+    exportInProgress = true;
     try {
         const token = await AsyncStorage.getItem('auth_token');
         const fileUri = FileSystem.documentDirectory + `${filename}.csv`;
@@ -33,5 +40,7 @@ export const exportToCsv = async (endpoint, filename) => {
     } catch (error) {
         console.error('Export error:', error);
         Alert.alert('Erreur', 'L\'exportation a échoué');
+    } finally {
+        exportInProgress = false;
     }
 };

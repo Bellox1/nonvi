@@ -375,7 +375,7 @@ const AdminReservationScreen = ({ navigation }) => {
     return (
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor={Colors.surface} />
-            <SafeAreaView style={{ backgroundColor: Colors.surface }}>
+            <SafeAreaView edges={['top']} style={{ backgroundColor: Colors.surface }}>
                 <View style={styles.topHeader}>
                     {!showSearch ? (
                         <>
@@ -384,7 +384,7 @@ const AdminReservationScreen = ({ navigation }) => {
                             </TouchableOpacity>
                             <View style={styles.headerInfo}>
                                 <Text style={styles.welcomeText}>Admin</Text>
-                                <Text style={styles.userName}>Réservations</Text>
+                                <Text style={styles.userName} numberOfLines={1}>Réservations</Text>
                             </View>
                             <View style={styles.headerActions}>
                                 <TouchableOpacity

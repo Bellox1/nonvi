@@ -9,6 +9,7 @@ import client from '../../api/client';
 import Colors from '../../theme/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import Toast, { useToast } from '../../components/Toast';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '../../context/AuthContext';
 
@@ -182,21 +183,23 @@ const AdminPubScreen = ({ navigation }) => {
             <Toast ref={toastRef} />
 
             {/* Header */}
-            <View style={styles.topHeader}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={24} color={Colors.primary} />
-                </TouchableOpacity>
-                <View style={styles.headerInfo}>
-                    <Text style={styles.welcomeText}>Administration</Text>
-                    <Text style={styles.userName}>Publicités</Text>
-                </View>
-                {canCreate && (
-                    <TouchableOpacity style={styles.addBtn} onPress={() => { resetForm(); setModalVisible(true); }}>
-                        <Ionicons name="add" size={24} color="#FFF" />
-                        <Text style={styles.addBtnText}>Ajouter</Text>
+            <SafeAreaView edges={['top']} style={{ backgroundColor: Colors.surface }}>
+                <View style={styles.topHeader}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                        <Ionicons name="arrow-back" size={24} color={Colors.primary} />
                     </TouchableOpacity>
-                )}
-            </View>
+                    <View style={styles.headerInfo}>
+                        <Text style={styles.welcomeText}>Administration</Text>
+                        <Text style={styles.userName} numberOfLines={1}>Publicités</Text>
+                    </View>
+                    {canCreate && (
+                        <TouchableOpacity style={styles.addBtn} onPress={() => { resetForm(); setModalVisible(true); }}>
+                            <Ionicons name="add" size={24} color="#FFF" />
+                            <Text style={styles.addBtnText}>Ajouter</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
+            </SafeAreaView>
 
             {loading ? (
                 <ActivityIndicator size="large" color={Colors.secondary} style={{ marginTop: 60 }} />
@@ -297,7 +300,7 @@ const AdminPubScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.background },
     topHeader: {
-        paddingTop: Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight || 24) + 10,
+        paddingTop: Platform.OS === 'android' ? 10 : 0,
         paddingHorizontal: 24,
         paddingBottom: 20,
         flexDirection: 'row',
@@ -328,7 +331,7 @@ const styles = StyleSheet.create({
         borderRadius: 12,
     },
     addBtnText: { color: '#FFF', marginLeft: 5, fontFamily: 'Poppins_600SemiBold' },
-    list: { padding: 16 },
+    list: { padding: 16, paddingBottom: 100 },
     card: {
         backgroundColor: Colors.surface,
         borderRadius: 16,

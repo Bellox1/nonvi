@@ -9,9 +9,12 @@ import {
     StatusBar
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '../theme/Colors';
 
 const PrivacyPolicyScreen = ({ navigation }) => {
+    const insets = useSafeAreaInsets();
+    
     const sections = [
         {
             title: "1. Gestion de vos services",
@@ -72,7 +75,7 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         padding: 20,
-        paddingBottom: 40,
+        paddingBottom: Platform.OS === 'android' ? 80 : 40,
     },
     headerBox: {
         alignItems: 'center',

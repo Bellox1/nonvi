@@ -121,7 +121,7 @@ const WelcomeScreen = ({ navigation }) => {
             </View>
 
             {/* Buttons */}
-            <View style={[styles.buttons, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+            <View style={[styles.buttons, { paddingBottom: Math.max(insets?.bottom || 20, 20) }]}>
                 <TouchableOpacity
                     style={styles.btnPrimary}
                     onPress={() => navigation.navigate('Login')}

@@ -16,6 +16,7 @@ import {
     StatusBar,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import client from '../../api/client';
 import Colors from '../../theme/Colors';
 import { Ionicons } from '@expo/vector-icons';
@@ -193,29 +194,31 @@ const AdminProductScreen = ({ navigation }) => {
             <StatusBar barStyle="dark-content" backgroundColor={Colors.surface} />
             <Toast ref={toastRef} />
 
-            <View style={styles.topHeader}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={24} color={Colors.primary} />
-                </TouchableOpacity>
-                <View style={styles.headerInfo}>
-                    <Text style={styles.welcomeText}>Administration</Text>
-                    <Text style={styles.userName}>Produits</Text>
+            <SafeAreaView edges={['top']} style={{ backgroundColor: Colors.surface }}>
+                <View style={styles.topHeader}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                        <Ionicons name="arrow-back" size={24} color={Colors.primary} />
+                    </TouchableOpacity>
+                    <View style={styles.headerInfo}>
+                        <Text style={styles.welcomeText}>Administration</Text>
+                        <Text style={styles.userName} numberOfLines={1}>Produits</Text>
+                    </View>
+                    {canExport && (
+                        <TouchableOpacity
+                            onPress={() => exportToCsv('admin/produits-export', 'produits')}
+                            style={{ marginRight: 15 }}
+                        >
+                            <Ionicons name="download-outline" size={24} color={Colors.secondary} />
+                        </TouchableOpacity>
+                    )}
+                    {canCreate && (
+                        <TouchableOpacity style={styles.addBtn} onPress={() => { resetForm(); setModalVisible(true); }}>
+                            <Ionicons name="add" size={24} color="#FFF" />
+                            <Text style={styles.addBtnText}>Ajouter</Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
-                {canExport && (
-                    <TouchableOpacity
-                        onPress={() => exportToCsv('admin/produits-export', 'produits')}
-                        style={{ marginRight: 15 }}
-                    >
-                        <Ionicons name="download-outline" size={24} color={Colors.secondary} />
-                    </TouchableOpacity>
-                )}
-                {canCreate && (
-                    <TouchableOpacity style={styles.addBtn} onPress={() => { resetForm(); setModalVisible(true); }}>
-                        <Ionicons name="add" size={24} color="#FFF" />
-                        <Text style={styles.addBtnText}>Ajouter</Text>
-                    </TouchableOpacity>
-                )}
-            </View>
+            </SafeAreaView>
 
             {loading ? <ActivityIndicator size="large" color={Colors.secondary} style={{ marginTop: 50 }} /> :
                 <FlatList
@@ -281,7 +284,7 @@ const AdminProductScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.background },
     topHeader: {
-        paddingTop: Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight || 24) + 15,
+        paddingTop: Platform.OS === 'android' ? 10 : 0,
         paddingHorizontal: 24,
         paddingBottom: 20,
         flexDirection: 'row',
@@ -309,7 +312,7 @@ const styles = StyleSheet.create({
     },
     addBtn: { backgroundColor: Colors.secondary, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
     addBtnText: { color: '#FFF', marginLeft: 5, fontFamily: 'Poppins_600SemiBold' },
-    list: { padding: 16 },
+    list: { padding: 16, paddingBottom: 100 },
     card: { backgroundColor: Colors.surface, borderRadius: 15, padding: 16, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 3 },
     prodInfo: { flex: 1 },
     prodName: { fontSize: 16, fontFamily: 'Poppins_700Bold', color: Colors.primary },

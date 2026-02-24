@@ -13,8 +13,8 @@ import {
     KeyboardAvoidingView,
     Platform,
     StatusBar,
-    SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import client from '../../api/client';
 import Colors from '../../theme/Colors';
 import { Ionicons } from '@expo/vector-icons';
@@ -414,14 +414,14 @@ const AdminCommandeScreen = ({ navigation }) => {
             <StatusBar barStyle="dark-content" backgroundColor={Colors.surface} />
             <Toast ref={toastRef} />
 
-            <SafeAreaView style={{ backgroundColor: Colors.surface }}>
+            <SafeAreaView edges={['top']} style={{ backgroundColor: Colors.surface }}>
                 <View style={styles.topHeader}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
                         <Ionicons name="arrow-back" size={24} color={Colors.primary} />
                     </TouchableOpacity>
                     <View style={styles.headerInfo}>
                         <Text style={styles.welcomeText}>Admin</Text>
-                        <Text style={styles.userName}>Commandes</Text>
+                        <Text style={styles.userName} numberOfLines={1}>Commandes</Text>
                     </View>
                     {hasPermission('export_csv') && (
                         <TouchableOpacity
@@ -885,7 +885,7 @@ const styles = StyleSheet.create({
     addBtn: { backgroundColor: Colors.secondary, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
     addBtnText: { color: '#FFF', marginLeft: 5, fontFamily: 'Poppins_600SemiBold' },
 
-    list: { padding: 20 },
+    list: { padding: 20, paddingBottom: 100 },
     card: {
         backgroundColor: Colors.surface,
         borderRadius: 18,

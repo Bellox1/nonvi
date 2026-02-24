@@ -14,6 +14,7 @@ import {
     Platform,
     StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import client from '../../api/client';
 import Colors from '../../theme/Colors';
 import { Ionicons } from '@expo/vector-icons';
@@ -240,15 +241,17 @@ const AdminUserScreen = ({ navigation }) => {
     return (
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor={Colors.surface} />
-            <View style={styles.headerSection}>
-                <View style={styles.topBar}>
+
+            <SafeAreaView edges={['top']} style={{ backgroundColor: Colors.surface }}>
+                <View style={styles.headerSection}>
+                    <View style={styles.header}>
                     {!showSearch ? (
                         <>
                             <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                                 <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 12 }}>
                                     <Ionicons name="arrow-back" size={24} color={Colors.primary} />
                                 </TouchableOpacity>
-                                <Text style={styles.countText}>{total} {filterType === 'client' ? 'clients' : filterType === 'membre' ? 'membres' : 'utilisateurs'}</Text>
+                                <Text style={styles.countText} numberOfLines={1}>{total} {filterType === 'client' ? 'clients' : filterType === 'membre' ? 'membres' : 'utilisateurs'}</Text>
                             </View>
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                 <TouchableOpacity
@@ -294,36 +297,35 @@ const AdminUserScreen = ({ navigation }) => {
                             </TouchableOpacity>
                         </View>
                     )}
-                </View>
+                    </View>
 
-                <View style={styles.filterWrapper}>
-                    <View style={styles.filterGroup}>
-                        <TouchableOpacity
-                            style={[styles.filterTab, filterType === 'all' && styles.filterTabActive]}
-                            onPress={() => setFilterType('all')}
-                        >
-                            <Text style={[styles.filterTabText, filterType === 'all' && styles.filterTabTextActive]}>Tous</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.filterTab, filterType === 'membre' && styles.filterTabActive]}
-                            onPress={() => setFilterType('membre')}
-                        >
-                            <Text style={[styles.filterTabText, filterType === 'membre' && styles.filterTabTextActive]}>Membres</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.filterTab, filterType === 'client' && styles.filterTabActive]}
-                            onPress={() => setFilterType('client')}
-                        >
-                            <Text style={[styles.filterTabText, filterType === 'client' && styles.filterTabTextActive]}>Clients</Text>
-                        </TouchableOpacity>
+                    <View style={styles.filterWrapper}>
+                        <View style={styles.filterGroup}>
+                            <TouchableOpacity
+                                style={[styles.filterTab, filterType === 'all' && styles.filterTabActive]}
+                                onPress={() => setFilterType('all')}
+                            >
+                                <Text style={[styles.filterTabText, filterType === 'all' && styles.filterTabTextActive]}>Tous</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.filterTab, filterType === 'membre' && styles.filterTabActive]}
+                                onPress={() => setFilterType('membre')}
+                            >
+                                <Text style={[styles.filterTabText, filterType === 'membre' && styles.filterTabTextActive]}>Membres</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.filterTab, filterType === 'client' && styles.filterTabActive]}
+                                onPress={() => setFilterType('client')}
+                            >
+                                <Text style={[styles.filterTabText, filterType === 'client' && styles.filterTabTextActive]}>Clients</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
-            </View>
+            </SafeAreaView>
 
             {loading && users.length === 0 ? (
-                <View style={styles.center}>
-                    <ActivityIndicator size="large" color={Colors.secondary} />
-                </View>
+                <View style={styles.center}><ActivityIndicator size="large" color={Colors.secondary} /></View>
             ) : (
                 <FlatList
                     data={users}
@@ -332,6 +334,7 @@ const AdminUserScreen = ({ navigation }) => {
                     contentContainerStyle={styles.list}
                     onRefresh={fetchUsers}
                     refreshing={refreshing}
+                    ListEmptyComponent={<Text style={styles.empty}>Aucun compte</Text>}
                 />
             )}
 
@@ -430,17 +433,17 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.background },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     headerSection: { backgroundColor: Colors.surface, borderBottomWidth: 1, borderBottomColor: Colors.border },
-    topBar: {
+    header: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 20,
         paddingBottom: 10,
-        paddingTop: Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight || 24) + 10,
+        paddingTop: Platform.OS === 'android' ? 10 : 0,
     },
     countText: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: Colors.textLight },
     addButton: { backgroundColor: Colors.secondary, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
     addButtonText: { color: Colors.surface, marginLeft: 4, fontFamily: 'Poppins_600SemiBold', fontSize: 12 },
-    list: { padding: 16 },
+    list: { padding: 16, paddingBottom: 100, flexGrow: 1 },
     card: {
         backgroundColor: Colors.surface,
         borderRadius: 16,

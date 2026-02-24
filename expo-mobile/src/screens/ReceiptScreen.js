@@ -22,6 +22,11 @@ const ReceiptScreen = ({ route, navigation }) => {
     const [currentIndex, setCurrentIndex] = React.useState(1);
     const totalTickets = parseInt(reservation.nombre_tickets) || 1;
 
+    const currentTicketCode = String(reservation.tickets?.[currentIndex - 1]?.code || reservation.qr_code || '').trim();
+    const qrValue = currentTicketCode
+        ? `NVT_SECURE_v1:${base64.encode(`NV_HASH_92_${currentTicketCode}_31_NONVI`)}`
+        : '';
+
     const formatDate = (dateStr) => {
         if (!dateStr) return '';
         const date = new Date(dateStr);
@@ -129,12 +134,16 @@ const ReceiptScreen = ({ route, navigation }) => {
                     {/* Bottom Part (QR Code) */}
                     <View style={styles.ticketBottom}>
                         <View style={[styles.qrContainer, !!(reservation.tickets?.[currentIndex - 1]?.is_scanned || reservation.is_scanned) && styles.qrContainerDisabled]}>
-                            <QRCode
-                                value={`NVT_SECURE_v1:${base64.encode("NV_HASH_92_" + (reservation.tickets?.[currentIndex - 1]?.code || reservation.qr_code || "INVALID") + "_31_NONVI")}`}
-                                size={200}
-                                color={Colors.primary}
-                                backgroundColor="#FFF"
-                            />
+                            {qrValue ? (
+                                <QRCode
+                                    value={qrValue}
+                                    size={200}
+                                    color={Colors.primary}
+                                    backgroundColor="#FFF"
+                                />
+                            ) : (
+                                <Text style={styles.qrMissingText}>QR Code indisponible</Text>
+                            )}
                             {!!(reservation.tickets?.[currentIndex - 1]?.is_scanned || reservation.is_scanned) && (
                                 <View style={styles.scannedOverlay}>
                                     <View style={styles.scannedBadge}><Ionicons name="checkmark-circle" size={24} color="#FFF" /><Text style={styles.scannedText}>DÉJÀ UTILISÉ</Text></View>
@@ -385,6 +394,14 @@ const styles = StyleSheet.create({
         fontFamily: 'Poppins_600SemiBold',
         color: Colors.secondary,
         marginTop: 6,
+    },
+    qrMissingText: {
+        fontSize: 14,
+        fontFamily: 'Poppins_500Medium',
+        color: Colors.textLight,
+        textAlign: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
     },
     totalSection: {
         width: '100%',

@@ -68,7 +68,7 @@ const TabNavigator = () => {
                 tabBarActiveTintColor: Colors.secondary,
                 tabBarInactiveTintColor: Colors.textLight,
                 tabBarStyle: {
-                    height: Platform.OS === 'ios' ? 88 : 65 + (insets.bottom > 0 ? insets.bottom - 10 : 0),
+                    height: Platform.OS === 'ios' ? 88 : 65 + ((insets?.bottom || 0) > 0 ? (insets?.bottom || 0) - 10 : 0),
                     paddingBottom: Platform.OS === 'ios' ? 30 : 12,
                     paddingTop: 8,
                     backgroundColor: Colors.surface,

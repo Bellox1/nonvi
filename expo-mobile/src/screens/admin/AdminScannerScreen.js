@@ -12,6 +12,25 @@ export default function AdminScannerScreen({ navigation }) {
     const [loading, setLoading] = useState(false);
     const isScanning = useRef(false);
 
+    const resetScanState = () => {
+        isScanning.current = false;
+        setScanned(false);
+        setLoading(false);
+    };
+
+    const padBase64 = (input) => {
+        const s = String(input || '');
+        const padLen = (4 - (s.length % 4)) % 4;
+        return s + '='.repeat(padLen);
+    };
+
+    const extractTicketCodeFromDecoded = (decoded) => {
+        const str = String(decoded || '').trim();
+        const match = str.match(/^NV_HASH_92_([A-Z0-9]{6,32})_31_NONVI$/i);
+        if (match?.[1]) return match[1].toUpperCase();
+        return '';
+    };
+
     useEffect(() => {
         if (!permission) {
             requestPermission();
@@ -26,41 +45,43 @@ export default function AdminScannerScreen({ navigation }) {
         setLoading(true);
 
         try {
-            console.log("Scanned raw data:", data);
-
-            // 1. Validation locale : Eviter de scanner les liens Expo ou sites web
             if (!data || (!data.startsWith('NVT_SECURE_v1:') && !data.startsWith('NVT:'))) {
                 Alert.alert(
                     "Format Invalide ❌",
                     "Ceci n'est pas un ticket Nonvi. Veuillez scanner un QR code de ticket valide.",
                     [{
-                        text: "Réessayer", onPress: () => {
-                            isScanning.current = false;
-                            setScanned(false);
-                            setLoading(false);
-                        }
+                        text: "Réessayer", onPress: resetScanState
                     }]
                 );
                 return;
             }
 
             let ticketCode = data;
-            // Decode if it's our obfuscated format
             if (data.startsWith('NVT_SECURE_v1:')) {
                 try {
-                    const decoded = base64.decode(data.replace('NVT_SECURE_v1:', ''));
-                    ticketCode = decoded.replace('NV_HASH_92_', '').replace('_31_NONVI', '');
-                    console.log("Decoded secure ticket code:", ticketCode);
+                    const payload = data.replace('NVT_SECURE_v1:', '');
+                    const decoded = base64.decode(padBase64(payload));
+                    ticketCode = extractTicketCodeFromDecoded(decoded);
                 } catch (e) {
-                    throw new Error("Impossible de décoder ce ticket sécurisé.");
+                    ticketCode = '';
                 }
             } else if (data.startsWith('NVT:')) {
                 try {
-                    ticketCode = base64.decode(data.replace('NVT:', ''));
-                    console.log("Decoded ticket code:", ticketCode);
+                    const payload = data.replace('NVT:', '');
+                    ticketCode = String(base64.decode(padBase64(payload)) || '').trim();
                 } catch (e) {
-                    console.warn("Could not decode data, trying raw data");
+                    ticketCode = '';
                 }
+            }
+
+            ticketCode = String(ticketCode || '').trim();
+            if (!ticketCode || ticketCode.toUpperCase() === 'INVALID') {
+                Alert.alert(
+                    "Ticket invalide ❌",
+                    "QR Code non reconnu. Vérifiez que le QR provient bien d'un ticket Nonvi.",
+                    [{ text: "Réessayer", onPress: resetScanState }]
+                );
+                return;
             }
 
             const response = await client.post('/admin/reservations/scan', {
@@ -78,16 +99,12 @@ export default function AdminScannerScreen({ navigation }) {
                 }]
             );
         } catch (error) {
-            console.error(error);
             const errorMsg = error.response?.data?.message || error.message || "Erreur de validation du ticket";
             Alert.alert(
-                "Erreur ❌",
+                "Erreur ",
                 errorMsg,
                 [{
-                    text: "Réessayer", onPress: () => {
-                        isScanning.current = false;
-                        setScanned(false);
-                    }
+                    text: "Réessayer", onPress: resetScanState
                 }]
             );
         } finally {

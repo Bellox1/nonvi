@@ -100,12 +100,14 @@ const AdminTarifScreen = ({ navigation }) => {
         >
             <StatusBar barStyle="dark-content" backgroundColor={Colors.surface} />
 
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 15 }}>
-                    <Ionicons name="arrow-back" size={24} color={Colors.primary} />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Configuration Générale</Text>
-            </View>
+            <SafeAreaView edges={['top']} style={{ backgroundColor: Colors.surface }}>
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 15 }}>
+                        <Ionicons name="arrow-back" size={24} color={Colors.primary} />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle} numberOfLines={1}>Configuration Générale</Text>
+                </View>
+            </SafeAreaView>
 
             <Toast ref={toastRef} />
             <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
@@ -206,13 +208,13 @@ const AdminTarifScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.background },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    scrollContent: { padding: 20 },
+    scrollContent: { padding: 20, paddingBottom: 100 },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 20,
         paddingBottom: 20,
-        paddingTop: Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight || 24) + 15,
+        paddingTop: Platform.OS === 'android' ? 10 : 0,
         backgroundColor: Colors.surface,
         borderBottomWidth: 1,
         borderBottomColor: Colors.border,

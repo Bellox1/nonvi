@@ -79,7 +79,26 @@ const HistoryScreen = ({ navigation }) => {
     };
 
     const renderTransportItem = ({ item }) => (
-        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('Receipt', { reservation: item })} activeOpacity={0.7}><View style={styles.cardHeader}><View style={styles.iconBg}><Ionicons name="bus" size={24} color={Colors.primary} /></View><View style={styles.headerInfoStyle}><Text style={styles.routeText}>{`${item.station_depart?.nom || ""} ➔ ${item.station_arrivee?.nom || ""}`}</Text><Text style={styles.dateText}>{`Code: ${item.tickets?.[0]?.code || "---"} • ${item.heure_depart?.substring(0, 5) || ""} • ${new Date(item.created_at).toLocaleDateString('fr-FR')}`}</Text></View><View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.statut) + '15' }]}><Text style={[styles.statusText, { color: getStatusColor(item.statut) }]}>{getStatusLabel(item.statut, 'transport')}</Text></View></View><View style={styles.cardFooter}><View style={styles.deliveryInfo}><Text style={styles.detailsText}>{`${item.nombre_tickets} ticket(s) • ${item.moyen_paiement}`}</Text></View><Text style={styles.priceText}>{`${item.prix} CFA`}</Text></View></TouchableOpacity>
+        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('Receipt', { reservation: item })} activeOpacity={0.7}>
+            <View style={styles.cardHeader}>
+                <View style={styles.iconBg}>
+                    <Ionicons name="bus" size={24} color={Colors.primary} />
+                </View>
+                <View style={styles.headerInfoStyle}>
+                    <Text style={styles.routeText}>{`${item.station_depart?.nom || ""} ➔ ${item.station_arrivee?.nom || ""}`}</Text>
+                    <Text style={styles.dateText}>{`Code: ${item.tickets?.[0]?.code || "---"} • ${item.heure_depart?.substring(0, 5) || ""} • ${new Date(item.created_at).toLocaleDateString('fr-FR')}`}</Text>
+                </View>
+                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.statut) + '15' }]}>
+                    <Text style={[styles.statusText, { color: getStatusColor(item.statut) }]}>{getStatusLabel(item.statut, 'transport')}</Text>
+                </View>
+            </View>
+            <View style={styles.cardFooter}>
+                <View style={styles.deliveryInfo}>
+                    <Text style={styles.detailsText}>{`${(item.tickets?.filter(t => t?.is_scanned)?.length ?? (item.is_scanned ? (parseInt(item.nombre_tickets) || 0) : 0))} / ${(item.tickets?.length ?? (parseInt(item.nombre_tickets) || 0))} ticket(s) • ${item.moyen_paiement}`}</Text>
+                </View>
+                <Text style={styles.priceText}>{`${item.prix} CFA`}</Text>
+            </View>
+        </TouchableOpacity>
     );
 
     const renderOrderItem = ({ item }) => (

@@ -16,7 +16,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.bellox.nonvi"
+      "bundleIdentifier": "com.bellox.nonvi",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.bellox.nonvi",
@@ -24,7 +27,17 @@
         "foregroundImage": "./assets/image_app.png",
         "backgroundColor": "#1a2a3a"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "navigationBar": {
+        "visible": "transparent"
+      },
+      "statusBar": {
+        "translucent": true
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -33,6 +46,7 @@
       "@react-native-community/datetimepicker",
       "expo-font",
       "expo-asset",
+      "expo-dev-client",
       [
         "expo-camera",
         {
@@ -40,6 +54,11 @@
         }
       ],
       "expo-web-browser"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "a68455bb-25ec-44d4-b75e-517b170f0636"
+      }
+    }
   }
 }
