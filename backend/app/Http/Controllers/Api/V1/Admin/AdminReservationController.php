@@ -50,11 +50,14 @@ class AdminReservationController extends Controller
             $query->where(function($q) use ($search) {
                 $q->whereHas('user', function($qu) use ($search) {
                     $qu->where('name', 'like', "%{$search}%")
-                       ->orWhere('tel', 'like', "%{$search}%");
+                       ->orWhere('tel', 'like', "%{$search}%")
+                       ->orWhere('unique_id', 'like', "%{$search}%");
                 })
                 ->orWhereHas('tickets', function($qt) use ($search) {
                     $qt->where('code', 'like', "%{$search}%");
                 })
+                ->orWhere('guest_name', 'like', "%{$search}%")
+                ->orWhere('guest_phone', 'like', "%{$search}%")
                 ->orWhere('id', 'like', "%{$search}%");
             });
         }
@@ -62,6 +65,69 @@ class AdminReservationController extends Controller
         $reservations = $query->paginate(20);
 
         return response()->json($reservations);
+    }
+
+    public function searchUsers(Request $request)
+    {
+        $search = $request->get('q');
+        $users = \App\Models\User::where('name', 'like', "%{$search}%")
+            ->orWhere('tel', 'like', "%{$search}%")
+            ->orWhere('unique_id', 'like', "%{$search}%")
+            ->limit(10)
+            ->get(['id', 'name', 'tel', 'unique_id']);
+        
+        return response()->json($users);
+    }
+
+    public function store(Request $request)
+    {
+        if (!\Illuminate\Support\Facades\Gate::allows('reservation_edit')) {
+            return response()->json(['message' => 'Action refusée.'], 403);
+        }
+
+        $request->validate([
+            'station_depart_id' => 'required|exists:stations,id',
+            'station_arrivee_id' => 'required|exists:stations,id',
+            'date_depart' => 'required|date',
+            'heure_depart' => 'required|string',
+            'nombre_tickets' => 'required|integer|min:1',
+            'user_id' => 'nullable|exists:users,id',
+            'guest_name' => 'nullable|string|required_without:user_id',
+            'guest_phone' => 'nullable|string',
+            'prix' => 'required|numeric'
+        ]);
+
+        $reservation = Reservation::create([
+            'user_id' => $request->user_id,
+            'guest_name' => $request->guest_name,
+            'guest_phone' => $request->guest_phone,
+            'station_depart_id' => $request->station_depart_id,
+            'station_arrivee_id' => $request->station_arrivee_id,
+            'nombre_tickets' => $request->nombre_tickets,
+            'date_depart' => $request->date_depart,
+            'heure_depart' => $request->heure_depart,
+            'moyen_paiement' => 'Espèces (Admin)',
+            'statut' => 'confirme',
+            'prix' => $request->prix,
+            'payment_status' => 'paid'
+        ]);
+
+        // Generate tickets
+        for ($i = 0; $i < $request->nombre_tickets; $i++) {
+            $code = strtoupper(\Illuminate\Support\Str::random(8));
+            while (\App\Models\Ticket::where('code', $code)->exists()) {
+                $code = strtoupper(\Illuminate\Support\Str::random(8));
+            }
+            $reservation->tickets()->create([
+                'code' => $code,
+                'is_scanned' => false,
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Réservation créée avec succès',
+            'reservation' => $reservation->load(['user', 'tickets'])
+        ]);
     }
 
     public function updateStatus(Request $request, $id)

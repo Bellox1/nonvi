@@ -48,6 +48,37 @@ class TransportController extends Controller
             }
         }
 
+        // Check seats availability
+        $capacitySetting = \App\Models\Setting::where('key', 'nb_bus_places')->first();
+        $capacity = $capacitySetting ? (int)$capacitySetting->value : 50;
+
+        $bookedSeats = Reservation::where('date_depart', $request->date_depart)
+            ->where('heure_depart', $request->heure_depart)
+            ->where('station_depart_id', $request->station_depart_id)
+            ->whereIn('statut', ['confirme', 'en_trajet', 'termine'])
+            ->sum('nombre_tickets');
+        
+        // Also check pending payments to avoid overbooking
+        $pendingSeats = \App\Models\PendingPayment::where('type', 'reservation')
+            ->where('created_at', '>=', now()->subMinutes(15)) // Only check recent pending
+            ->get()
+            ->filter(function($p) use ($request) {
+                return $p->data['date_depart'] === $request->date_depart && 
+                       $p->data['heure_depart'] === $request->heure_depart &&
+                       $p->data['station_depart_id'] == $request->station_depart_id;
+            })
+            ->sum(function($p) {
+                return $p->data['nombre_tickets'];
+            });
+
+        if (($bookedSeats + $pendingSeats + $request->nombre_tickets) > $capacity) {
+            $remaining = $capacity - ($bookedSeats + $pendingSeats);
+            $message = $remaining > 0 
+                ? "Désolé, il ne reste que {$remaining} places disponibles pour ce trajet."
+                : "Désolé, ce bus est déjà complet pour l'heure choisie.";
+            return response()->json(['message' => $message], 422);
+        }
+
         $prixSetting = \App\Models\Setting::where('key', 'prix_ticket')->first();
         $prixUnit = $prixSetting ? (float)$prixSetting->value : 0;
         $prixTotal = $prixUnit * $request->nombre_tickets;
@@ -91,5 +122,59 @@ class TransportController extends Controller
     public function stations()
     {
         return response()->json(Station::all());
+    }
+
+    public function getAvailability(Request $request)
+    {
+        $request->validate([
+            'date' => 'required|date',
+            'station_id' => 'required|exists:stations,id'
+        ]);
+
+        $capacitySetting = \App\Models\Setting::where('key', 'nb_bus_places')->first();
+        $capacity = $capacitySetting ? (int)$capacitySetting->value : 50;
+
+        $booked = Reservation::where('date_depart', $request->date)
+            ->where('station_depart_id', $request->station_id)
+            ->whereIn('statut', ['confirme', 'en_trajet', 'termine'])
+            ->groupBy('heure_depart')
+            ->select('heure_depart', \DB::raw('SUM(nombre_tickets) as total'))
+            ->get()
+            ->pluck('total', 'heure_depart');
+
+        $pending = \App\Models\PendingPayment::where('type', 'reservation')
+            ->where('created_at', '>=', now()->subMinutes(15))
+            ->get()
+            ->filter(function($p) use ($request) {
+                return $p->data['date_depart'] === $request->date && 
+                       $p->data['station_depart_id'] == $request->station_id;
+            })
+            ->groupBy(function($p) {
+                return $p->data['heure_depart'];
+            })
+            ->map(function($group) {
+                return $group->sum(function($p) {
+                    return $p->data['nombre_tickets'];
+                });
+            });
+
+        $results = [];
+        // Create a unique list of times from both sources
+        $times = $booked->keys()->concat($pending->keys())->unique();
+
+        foreach ($times as $time) {
+            $totalBooked = ($booked[$time] ?? 0) + ($pending[$time] ?? 0);
+            
+            // Normalize time key to HH:mm (remove seconds if present)
+            $normalizedTime = substr($time, 0, 5);
+            
+            // If we have multiple entries for same HM (unlikely but safe), we sum them or just overwrite
+            $results[$normalizedTime] = max(0, $capacity - $totalBooked);
+        }
+
+        return response()->json([
+            'capacity' => $capacity,
+            'availability' => $results
+        ]);
     }
 }

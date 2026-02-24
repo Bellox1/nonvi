@@ -36,4 +36,26 @@ class AdminSettingController extends Controller
 
         return response()->json(['message' => 'Prix du ticket mis à jour avec succès']);
     }
+
+    public function getBusCapacity()
+    {
+        $setting = Setting::where('key', 'nb_bus_places')->first();
+        $capacity = $setting ? (int)$setting->value : 50; // 50 par défaut
+        return response()->json(['capacity' => $capacity]);
+    }
+
+    public function updateBusCapacity(Request $request)
+    {
+        $this->checkAdmin();
+        $request->validate([
+            'capacity' => 'required|integer|min:1'
+        ]);
+
+        Setting::updateOrCreate(
+            ['key' => 'nb_bus_places'],
+            ['value' => $request->capacity]
+        );
+
+        return response()->json(['message' => 'Capacité du bus mise à jour avec succès']);
+    }
 }

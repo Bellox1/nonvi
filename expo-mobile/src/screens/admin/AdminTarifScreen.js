@@ -10,6 +10,7 @@ import {
     ScrollView,
     Platform,
     StatusBar,
+    KeyboardAvoidingView,
 } from 'react-native';
 import client from '../../api/client';
 import Colors from '../../theme/Colors';
@@ -24,14 +25,20 @@ const AdminTarifScreen = ({ navigation }) => {
     const canEdit = hasPermission('setting_edit');
 
     const [prix, setPrix] = useState('');
+    const [capacity, setCapacity] = useState('');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [savingCapacity, setSavingCapacity] = useState(false);
     const { toastRef, showToast } = useToast();
 
-    const fetchPrice = async () => {
+    const fetchData = async () => {
         try {
-            const response = await client.get('/admin/settings/price');
-            setPrix(response.data.prix.toString());
+            const [priceRes, capacityRes] = await Promise.all([
+                client.get('/admin/settings/price'),
+                client.get('/admin/settings/capacity')
+            ]);
+            setPrix(priceRes.data.prix.toString());
+            setCapacity(capacityRes.data.capacity.toString());
         } catch (e) {
             console.error(e);
         } finally {
@@ -40,10 +47,10 @@ const AdminTarifScreen = ({ navigation }) => {
     };
 
     useEffect(() => {
-        fetchPrice();
+        fetchData();
     }, []);
 
-    const handleSave = async () => {
+    const handleSavePrice = async () => {
         if (!prix || isNaN(prix)) {
             showToast('Veuillez entrer un prix valide', 'error');
             return;
@@ -60,6 +67,23 @@ const AdminTarifScreen = ({ navigation }) => {
         }
     };
 
+    const handleSaveCapacity = async () => {
+        if (!capacity || isNaN(capacity) || parseInt(capacity) < 1) {
+            showToast('Veuillez entrer une capacité valide', 'error');
+            return;
+        }
+
+        setSavingCapacity(true);
+        try {
+            await client.post('/admin/settings/capacity', { capacity: parseInt(capacity) });
+            showToast('La capacité du bus a été mise à jour');
+        } catch (e) {
+            showToast('Échec de la mise à jour', 'error');
+        } finally {
+            setSavingCapacity(false);
+        }
+    };
+
     if (loading) {
         return (
             <View style={styles.center}>
@@ -69,18 +93,23 @@ const AdminTarifScreen = ({ navigation }) => {
     }
 
     return (
-        <View style={styles.container}>
+        <KeyboardAvoidingView
+            style={styles.container}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        >
             <StatusBar barStyle="dark-content" backgroundColor={Colors.surface} />
 
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 15 }}>
                     <Ionicons name="arrow-back" size={24} color={Colors.primary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Tarif des tickets</Text>
+                <Text style={styles.headerTitle}>Configuration Générale</Text>
             </View>
 
             <Toast ref={toastRef} />
-            <ScrollView contentContainerStyle={styles.scrollContent}>
+            <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+                {/* Section Prix du Ticket */}
                 <View style={styles.card}>
                     <View style={styles.cardHeader}>
                         <View style={styles.iconBg}>
@@ -106,7 +135,7 @@ const AdminTarifScreen = ({ navigation }) => {
                     {canEdit && (
                         <TouchableOpacity
                             style={[styles.saveBtn, saving && { opacity: 0.7 }]}
-                            onPress={handleSave}
+                            onPress={handleSavePrice}
                             disabled={saving}
                         >
                             {saving ? (
@@ -121,15 +150,56 @@ const AdminTarifScreen = ({ navigation }) => {
                     )}
                 </View>
 
+                {/* Section Capacité du Bus */}
+                <View style={[styles.card, { marginTop: 24 }]}>
+                    <View style={styles.cardHeader}>
+                        <View style={[styles.iconBg, { backgroundColor: Colors.primary + '15' }]}>
+                            <Ionicons name="bus-outline" size={24} color={Colors.primary} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.cardTitle}>Capacité du Bus</Text>
+                            <Text style={styles.cardSubtitle}>Nombre de places disponibles par bus</Text>
+                        </View>
+                    </View>
+
+                    <Text style={styles.label}>Nombre de places</Text>
+                    <TextInput
+                        style={[styles.input, !canEdit && { opacity: 0.6 }]}
+                        value={capacity}
+                        onChangeText={setCapacity}
+                        keyboardType="numeric"
+                        placeholder="Ex: 50"
+                        placeholderTextColor={Colors.textLight}
+                        editable={canEdit}
+                    />
+
+                    {canEdit && (
+                        <TouchableOpacity
+                            style={[styles.saveBtn, { backgroundColor: Colors.primary }, savingCapacity && { opacity: 0.7 }]}
+                            onPress={handleSaveCapacity}
+                            disabled={savingCapacity}
+                        >
+                            {savingCapacity ? (
+                                <ActivityIndicator color="#FFF" />
+                            ) : (
+                                <>
+                                    <Ionicons name="save-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />
+                                    <Text style={styles.saveText}>Enregistrer la capacité</Text>
+                                </>
+                            )}
+                        </TouchableOpacity>
+                    )}
+                </View>
+
                 <View style={styles.infoBox}>
                     <Ionicons name="information-circle-outline" size={20} color={Colors.primary} />
                     <Text style={styles.infoText}>
-                        Le changement de tarif est immédiat pour les nouvelles réservations.
-                        Les réservations déjà effectuées conservent le tarif au moment de l'achat.
+                        La capacité définit le nombre maximum de réservations possibles pour un départ (date et heure précises).
+                        Une fois ce quota atteint, les clients ne pourront plus réserver sur ce créneau.
                     </Text>
                 </View>
             </ScrollView>
-        </View>
+        </KeyboardAvoidingView>
     );
 };
 

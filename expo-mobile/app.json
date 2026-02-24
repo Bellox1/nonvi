@@ -5,22 +5,24 @@
     "scheme": "nonvi",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/app_image.png",
+    "icon": "./assets/image_app.png",
     "userInterfaceStyle": "light",
     "backgroundColor": "#FAF8F5",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/app_image.png",
+      "image": "./assets/image_app.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FAF8F5"
+      "backgroundColor": "#1a2a3a"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.bellox.nonvi"
     },
     "android": {
+      "package": "com.bellox.nonvi",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/app_image.png",
-        "backgroundColor": "#FAF8F5"
+        "foregroundImage": "./assets/image_app.png",
+        "backgroundColor": "#1a2a3a"
       },
       "edgeToEdgeEnabled": true
     },

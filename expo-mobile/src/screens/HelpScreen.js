@@ -22,9 +22,14 @@ const HelpScreen = ({ navigation }) => {
             description: "Le jour du départ, ouvrez 'Historique' et cliquez sur votre réservation. Présentez le QR Code qui s'affiche au contrôleur lors de l'embarquement."
         },
         {
-            icon: "person-outline", 
+            icon: "person-outline",
             title: "Gérer mon profil",
             description: "Allez dans 'Profil' pour modifier vos infos (nom, tel, mot de passe). Toute modification sensible nécessite une validation par code OTP."
+        },
+        {
+            icon: "id-card-outline",
+            title: "Identifiant Unique (ID)",
+            description: "Votre identifiant unique (ex: ID: 12345678) est votre numéro personnel de client. Il est visible dans le menu latéral et sur votre profil. Utilisez ce numéro lors de vos échanges avec notre support pour une assistance plus rapide."
         },
         {
             icon: "headset-outline",

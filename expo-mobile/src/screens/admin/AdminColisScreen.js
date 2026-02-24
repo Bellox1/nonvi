@@ -12,43 +12,45 @@ import {
     ScrollView,
     Platform,
     StatusBar,
+    RefreshControl,
+    KeyboardAvoidingView
 } from 'react-native';
 import client from '../../api/client';
 import Colors from '../../theme/Colors';
 import { Ionicons } from '@expo/vector-icons';
-import { Picker } from '@react-native-picker/picker';
-
 import { useAuth } from '../../context/AuthContext';
 import { exportToCsv } from '../../utils/export';
 
 const AdminColisScreen = ({ navigation }) => {
     const { hasPermission } = useAuth();
     const canCreate = hasPermission('coli_create');
-    const canShow = hasPermission('coli_show');
     const canEdit = hasPermission('coli_edit');
     const canDelete = hasPermission('coli_delete');
     const canExport = hasPermission('export_csv');
 
     const [colis, setColis] = useState([]);
     const [stations, setStations] = useState([]);
-    const [clients, setClients] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
     const [editColis, setEditColis] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const [showSearch, setShowSearch] = useState(false);
 
     // Form state
     const [destNom, setDestNom] = useState('');
     const [destTel, setDestTel] = useState('');
     const [prix, setPrix] = useState('');
     const [statut, setStatut] = useState('en_attente');
-    const [startStation, setStartStation] = useState('');
-    const [endStation, setEndStation] = useState('');
-    const [expediteurId, setExpediteurId] = useState('');
-    const [expediteurNom, setExpediteurNom] = useState('');
-    const [expediteurTel, setExpediteurTel] = useState('');
+    const [startStation, setStartStation] = useState(null);
+    const [endStation, setEndStation] = useState(null);
+
+    // Expediteur search
+    const [senderSearch, setSenderSearch] = useState('');
+    const [senderResults, setSenderResults] = useState([]);
+    const [selectedSender, setSelectedSender] = useState(null);
+    const [manualSenderNom, setManualSenderNom] = useState('');
+    const [manualSenderTel, setManualSenderTel] = useState('');
     const [isManualSender, setIsManualSender] = useState(false);
 
     const fetchColis = async (search = searchQuery) => {
@@ -61,16 +63,19 @@ const AdminColisScreen = ({ navigation }) => {
         }
     };
 
+    const fetchInitialData = async () => {
+        try {
+            const res = await client.get('/admin/stations');
+            setStations(res.data.data || res.data);
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [stationsRes, clientsRes] = await Promise.all([
-                client.get('/admin/stations'),
-                client.get('/admin/clients')
-            ]);
-            await fetchColis();
-            setStations(stationsRes.data.data || stationsRes.data);
-            setClients(clientsRes.data.data || clientsRes.data);
+            await Promise.all([fetchColis(), fetchInitialData()]);
         } catch (e) {
             Alert.alert('Erreur', 'Impossible de charger les données');
         } finally {
@@ -90,52 +95,63 @@ const AdminColisScreen = ({ navigation }) => {
         fetchData();
     }, []);
 
+    const searchUsers = async (q) => {
+        setSenderSearch(q);
+        if (q.length < 2) {
+            setSenderResults([]);
+            return;
+        }
+        try {
+            const res = await client.get(`/admin/clients?search=${q}`);
+            setSenderResults(res.data.data || res.data);
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
     const handleSave = async () => {
         if (!destNom || !destTel || !prix || !startStation || !endStation) {
             Alert.alert('Erreur', 'Veuillez remplir tous les champs obligatoires');
             return;
         }
 
-        if (!isManualSender && !expediteurId) {
-            Alert.alert('Erreur', 'Veuillez sélectionner un expéditeur ou choisir l\'envoi manuel');
+        if (!isManualSender && !selectedSender) {
+            Alert.alert('Erreur', 'Veuillez sélectionner un expéditeur');
             return;
         }
 
-        if (isManualSender && (!expediteurNom || !expediteurTel)) {
-            Alert.alert('Erreur', 'Veuillez remplir les informations de l\'expéditeur manuel');
+        if (isManualSender && (!manualSenderNom || !manualSenderTel)) {
+            Alert.alert('Erreur', 'Veuillez renseigner le nom et téléphone de l\'expéditeur');
             return;
         }
 
-        if (startStation === endStation) {
-            Alert.alert('Erreur', 'La station de départ et d\'arrivée ne peuvent pas être identiques');
-            return;
-        }
-
-        const data = {
-            destinataire_nom: destNom,
-            destinataire_tel: destTel,
-            prix,
-            statut,
-            station_depart_id: startStation,
-            station_arrivee_id: endStation,
-            expediteur_id: isManualSender ? null : expediteurId,
-            expediteur_nom: isManualSender ? expediteurNom : null,
-            expediteur_tel: isManualSender ? expediteurTel : null,
-        };
-
+        setSubmitting(true);
         try {
+            const payload = {
+                destinataire_nom: destNom,
+                destinataire_tel: destTel,
+                prix,
+                statut,
+                station_depart_id: startStation.id,
+                station_arrivee_id: endStation.id,
+                expediteur_id: isManualSender ? null : selectedSender.id,
+                expediteur_nom: isManualSender ? manualSenderNom : null,
+                expediteur_tel: isManualSender ? manualSenderTel : null,
+            };
+
             if (editColis) {
-                await client.put(`/admin/colis/${editColis.id}`, data);
+                await client.put(`/admin/colis/${editColis.id}`, payload);
             } else {
-                await client.post('/admin/colis', data);
+                await client.post('/admin/colis', payload);
             }
-            fetchData();
+            fetchColis();
             setModalVisible(false);
             resetForm();
         } catch (e) {
             const msg = e.response?.data?.message || 'Impossible d\'enregistrer le colis';
-            const errors = e.response?.data?.errors ? Object.values(e.response.data.errors).flat().join('\n') : '';
-            Alert.alert('Erreur', errors || msg);
+            Alert.alert('Erreur', msg);
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -144,26 +160,29 @@ const AdminColisScreen = ({ navigation }) => {
         setDestTel('');
         setPrix('');
         setStatut('en_attente');
-        setStartStation('');
-        setEndStation('');
-        setExpediteurId('');
-        setExpediteurNom('');
-        setExpediteurTel('');
+        setStartStation(null);
+        setEndStation(null);
+        setSelectedSender(null);
+        setSenderSearch('');
+        setSenderResults([]);
+        setManualSenderNom('');
+        setManualSenderTel('');
         setIsManualSender(false);
         setEditColis(null);
     };
 
     const handleQuickStatus = async (item) => {
-        let nextStatus = '';
-        if (item.statut === 'en_attente') nextStatus = 'en_cours';
-        else if (item.statut === 'en_cours') nextStatus = 'arrive';
-        else if (item.statut === 'arrive') nextStatus = 'livre';
-
+        const nextMap = {
+            'en_attente': 'en_cours',
+            'en_cours': 'arrive',
+            'arrive': 'livre'
+        };
+        const nextStatus = nextMap[item.statut];
         if (!nextStatus) return;
 
         try {
             await client.patch(`/admin/colis/${item.id}/status`, { statut: nextStatus });
-            fetchData();
+            fetchColis();
         } catch (e) {
             Alert.alert('Erreur', 'Impossible de mettre à jour le statut');
         }
@@ -176,191 +195,194 @@ const AdminColisScreen = ({ navigation }) => {
                 text: 'Supprimer', style: 'destructive', onPress: async () => {
                     try {
                         await client.delete(`/admin/colis/${id}`);
-                        fetchData();
+                        fetchColis();
                     } catch (e) { Alert.alert('Erreur', 'Echec suppression'); }
                 }
             }
         ]);
     };
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'en_attente': return Colors.warning;
-            case 'en_cours': return '#3B82F6'; // Blue
-            case 'arrive': return '#A855F7'; // Purple
-            case 'livre': return Colors.success;
-            case 'annule': return Colors.error;
-            default: return Colors.textLight;
-        }
-    };
-
     const getStatusLabel = (status) => {
         switch (status) {
-            case 'en_attente': return 'EN ATTENTE';
-            case 'en_cours': return 'EN COURS';
-            case 'arrive': return 'ARRIVÉ';
-            case 'livre': return 'LIVRÉ';
-            case 'annule': return 'ANNULÉ';
-            default: return status?.toUpperCase();
+            case 'en_attente': return { label: 'EN ATTENTE', color: Colors.warning, icon: 'time-outline' };
+            case 'en_cours': return { label: 'EN COURS', color: '#3B82F6', icon: 'airplane-outline' };
+            case 'arrive': return { label: 'ARRIVÉ', color: '#A855F7', icon: 'business-outline' };
+            case 'livre': return { label: 'LIVRÉ', color: Colors.success, icon: 'checkmark-done-circle-outline' };
+            case 'annule': return { label: 'ANNULÉ', color: Colors.error, icon: 'close-circle-outline' };
+            default: return { label: status?.toUpperCase(), color: Colors.textLight, icon: 'help-circle-outline' };
         }
-    };
-
-    const getNextStatus = (current) => {
-        if (current === 'en_attente') return 'en_cours';
-        if (current === 'en_cours') return 'arrive';
-        if (current === 'arrive') return 'livre';
-        return null;
     };
 
     const formatHour = (time) => {
         if (!time) return null;
-        return time.substring(0, 5); // Take HH:mm from HH:mm:ss
+        return time.substring(0, 5);
     };
 
-    const renderItem = ({ item }) => (
-        <View style={styles.card}>
-            <View style={styles.cardHeader}>
-                <View>
-                    <Text style={styles.destName}>{item.destinataire_nom}</Text>
-                    <Text style={styles.subtext}>{item.destinataire_tel}</Text>
-                </View>
-                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.statut) + '20' }]}>
-                    <Text style={[styles.statusText, { color: getStatusColor(item.statut) }]}>
-                        {getStatusLabel(item.statut)}
-                    </Text>
-                </View>
-            </View>
-            <View style={styles.route}>
-                <Text style={styles.routeText}>{item.station_depart?.nom || item.station_depart?.name} → {item.station_arrivee?.nom || item.station_arrivee?.name}</Text>
+    const openEditModal = (item) => {
+        setEditColis(item);
+        setDestNom(item.destinataire_nom);
+        setDestTel(item.destinataire_tel);
+        setPrix(item.prix.toString());
+        setStatut(item.statut);
+        setStartStation(item.station_depart);
+        setEndStation(item.station_arrivee);
 
-                <View style={styles.hoursRow}>
-                    {item.heure_envoi && (
-                        <View style={styles.hourItem}>
-                            <Ionicons name="paper-plane-outline" size={12} color={Colors.textLight} />
-                            <Text style={styles.hourText}>{formatHour(item.heure_envoi)}</Text>
-                        </View>
-                    )}
-                    {item.heure_arrive && (
-                        <View style={styles.hourItem}>
-                            <Ionicons name="business-outline" size={12} color={Colors.textLight} />
-                            <Text style={styles.hourText}>{formatHour(item.heure_arrive)}</Text>
-                        </View>
-                    )}
-                    {item.heure_retrait && (
-                        <View style={styles.hourItem}>
-                            <Ionicons name="checkmark-done-circle-outline" size={12} color={Colors.textLight} />
-                            <Text style={styles.hourText}>{formatHour(item.heure_retrait)}</Text>
-                        </View>
-                    )}
-                    {item.heure_annule && (
-                        <View style={styles.hourItem}>
-                            <Ionicons name="close-circle-outline" size={12} color={Colors.error} />
-                            <Text style={[styles.hourText, { color: Colors.error }]}>{formatHour(item.heure_annule)}</Text>
-                        </View>
-                    )}
+        if (item.expediteur) {
+            setSelectedSender(item.expediteur);
+            setIsManualSender(false);
+        } else {
+            setManualSenderNom(item.expediteur_nom);
+            setManualSenderTel(item.expediteur_tel);
+            setIsManualSender(true);
+        }
+
+        setModalVisible(true);
+    };
+
+    const renderItem = ({ item }) => {
+        const s = getStatusLabel(item.statut);
+        return (
+            <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                    <View style={styles.cardHeaderLeft}>
+                        <Text style={styles.destName}>{item.destinataire_nom}</Text>
+                        <Text style={styles.destTel}>{item.destinataire_tel}</Text>
+                    </View>
+                    <View style={styles.priceBadge}>
+                        <Text style={styles.priceText}>{item.prix} CFA</Text>
+                    </View>
                 </View>
 
-                <Text style={styles.price}>{item.prix} CFA</Text>
-            </View>
-            <View style={styles.cardFooter}>
-                <Text style={styles.expediteur}>
-                    Exp: {item.expediteur?.nom || item.expediteur_nom || 'Inconnu'}
-                </Text>
-                <View style={styles.actions}>
-                    {canEdit && ['en_attente', 'en_cours', 'arrive'].includes(item.statut) && (
-                        <TouchableOpacity
-                            onPress={() => handleQuickStatus(item)}
-                            style={[styles.quickBtn, { borderColor: getStatusColor(getNextStatus(item.statut)) }]}
-                        >
-                            <Text style={[styles.quickBtnText, { color: getStatusColor(getNextStatus(item.statut)) }]}>
-                                Passer à {getStatusLabel(getNextStatus(item.statut))}
+                <View style={styles.cardBody}>
+                    <View style={styles.routeContainer}>
+                        <View style={styles.stationRow}>
+                            <Ionicons name="location" size={16} color={Colors.primary} />
+                            <Text style={styles.stationName}>{item.station_depart?.nom}</Text>
+                        </View>
+                        <View style={styles.routeLine}>
+                            <View style={styles.dot} />
+                            <View style={styles.dash} />
+                            <Ionicons name="cube" size={14} color={Colors.secondary} />
+                            <View style={styles.dash} />
+                            <View style={styles.dot} />
+                        </View>
+                        <View style={styles.stationRow}>
+                            <Ionicons name="flag" size={16} color={Colors.secondary} />
+                            <Text style={styles.stationName}>{item.station_arrivee?.nom}</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.infoGrid}>
+                        <View style={styles.infoBox}>
+                            <Text style={styles.infoLabel}>Expéditeur</Text>
+                            <Text style={styles.infoValue} numberOfLines={1}>
+                                {item.expediteur?.name || item.expediteur_nom || 'Inconnu'}
                             </Text>
-                            <Ionicons name="arrow-forward" size={14} color={getStatusColor(getNextStatus(item.statut))} />
-                        </TouchableOpacity>
-                    )}
-                    {canEdit && (
-                        <TouchableOpacity onPress={() => {
-                            setEditColis(item);
-                            setDestNom(item.destinataire_nom);
-                            setDestTel(item.destinataire_tel);
-                            setPrix(item.prix.toString());
-                            setStatut(item.statut);
-                            setStartStation(item.station_depart_id.toString());
-                            setEndStation(item.station_arrivee_id.toString());
-                            setExpediteurId(item.expediteur_id?.toString() || '');
-                            setExpediteurNom(item.expediteur_nom || '');
-                            setExpediteurTel(item.expediteur_tel || '');
-                            setIsManualSender(!item.expediteur_id);
-                            setModalVisible(true);
-                        }} style={styles.actionBtn}>
-                            <Ionicons name="pencil" size={18} color={Colors.primary} />
-                        </TouchableOpacity>
-                    )}
-                    {canDelete && (
-                        <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.actionBtn}>
-                            <Ionicons name="trash" size={18} color={Colors.error} />
-                        </TouchableOpacity>
-                    )}
+                        </View>
+                        <View style={styles.infoBox}>
+                            <Text style={styles.infoLabel}>Date</Text>
+                            <Text style={styles.infoValue}>{new Date(item.created_at).toLocaleDateString('fr-FR')}</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.timeline}>
+                        {item.heure_envoi && (
+                            <View style={styles.timeItem}>
+                                <Ionicons name="paper-plane-outline" size={12} color={Colors.textLight} />
+                                <Text style={styles.timeText}>{formatHour(item.heure_envoi)}</Text>
+                            </View>
+                        )}
+                        {item.heure_arrive && (
+                            <View style={styles.timeItem}>
+                                <Ionicons name="business-outline" size={12} color={Colors.textLight} />
+                                <Text style={styles.timeText}>{formatHour(item.heure_arrive)}</Text>
+                            </View>
+                        )}
+                        {item.heure_retrait && (
+                            <View style={styles.timeItem}>
+                                <Ionicons name="checkmark-done-circle" size={12} color={Colors.success} />
+                                <Text style={[styles.timeText, { color: Colors.success }]}>{formatHour(item.heure_retrait)}</Text>
+                            </View>
+                        )}
+                    </View>
+                </View>
+
+                <View style={styles.cardFooter}>
+                    <View style={[styles.statusTag, { backgroundColor: s.color + '15' }]}>
+                        <Ionicons name={s.icon} size={14} color={s.color} />
+                        <Text style={[styles.statusTagText, { color: s.color }]}>{s.label}</Text>
+                    </View>
+
+                    <View style={styles.actions}>
+                        {canEdit && ['en_attente', 'en_cours', 'arrive'].includes(item.statut) && (
+                            <TouchableOpacity style={styles.quickAction} onPress={() => handleQuickStatus(item)}>
+                                <Ionicons name="arrow-forward-circle" size={24} color={Colors.secondary} />
+                            </TouchableOpacity>
+                        )}
+                        {canEdit && (
+                            <TouchableOpacity style={styles.actionIcon} onPress={() => openEditModal(item)}>
+                                <Ionicons name="create-outline" size={22} color={Colors.primary} />
+                            </TouchableOpacity>
+                        )}
+                        {canDelete && (
+                            <TouchableOpacity style={styles.actionIcon} onPress={() => handleDelete(item.id)}>
+                                <Ionicons name="trash-outline" size={22} color={Colors.error} />
+                            </TouchableOpacity>
+                        )}
+                    </View>
                 </View>
             </View>
-        </View>
-    );
+        );
+    };
 
     return (
         <View style={styles.container}>
-            <StatusBar barStyle="dark-content" backgroundColor={Colors.surface} />
-            <View style={styles.header}>
-                {!showSearch ? (
-                    <>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                            <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 15 }}>
-                                <Ionicons name="arrow-back" size={24} color={Colors.primary} />
-                            </TouchableOpacity>
-                            <Text style={styles.count}>{colis.length} Colis</Text>
-                        </View>
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <TouchableOpacity
-                                onPress={() => setShowSearch(true)}
-                                style={{ marginRight: 15 }}
-                            >
-                                <Ionicons name="search" size={24} color={Colors.textLight} />
-                            </TouchableOpacity>
-                            {canExport && (
-                                <TouchableOpacity
-                                    onPress={() => exportToCsv('admin/colis-export', 'colis')}
-                                    style={{ marginRight: 15 }}
-                                >
-                                    <Ionicons name="download-outline" size={24} color={Colors.secondary} />
-                                </TouchableOpacity>
-                            )}
-                            {canCreate && (
-                                <TouchableOpacity style={styles.addBtn} onPress={() => { resetForm(); setModalVisible(true); }}>
-                                    <Ionicons name="add" size={22} color="#FFF" />
-                                    <Text style={styles.addBtnText}>Créer</Text>
-                                </TouchableOpacity>
-                            )}
-                        </View>
-                    </>
-                ) : (
-                    <View style={styles.searchBar}>
-                        <Ionicons name="search" size={20} color={Colors.textLight} style={{ marginRight: 10 }} />
-                        <TextInput
-                            style={styles.searchInput}
-                            placeholder="Destinataire, Tel..."
-                            value={searchQuery}
-                            onChangeText={setSearchQuery}
-                            autoFocus
-                        />
-                        <TouchableOpacity onPress={() => { setShowSearch(false); setSearchQuery(''); }}>
-                            <Ionicons name="close-circle" size={22} color={Colors.textLight} />
+            <StatusBar barStyle="dark-content" />
+
+            {/* Header Premium */}
+            <View style={styles.topHeader}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                    <Ionicons name="arrow-back" size={28} color={Colors.primary} />
+                </TouchableOpacity>
+                <View style={styles.headerInfo}>
+                    <Text style={styles.welcomeText}>Administration</Text>
+                    <Text style={styles.userName}>Gestion des Colis</Text>
+                </View>
+                {canCreate && (
+                    <TouchableOpacity style={styles.addBtn} onPress={() => { resetForm(); setModalVisible(true); }}>
+                        <Ionicons name="add" size={24} color="#FFF" />
+                        <Text style={styles.addBtnText}>Créer</Text>
+                    </TouchableOpacity>
+                )}
+            </View>
+
+            {/* Search Bar */}
+            <View style={styles.searchSection}>
+                <View style={styles.searchBarContainer}>
+                    <Ionicons name="search" size={20} color={Colors.textLight} />
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder="Rechercher un colis ou destinataire..."
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                    />
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')}>
+                            <Ionicons name="close-circle" size={20} color={Colors.textLight} />
                         </TouchableOpacity>
-                    </View>
+                    )}
+                </View>
+                {canExport && (
+                    <TouchableOpacity style={styles.exportBtn} onPress={() => exportToCsv('admin/colis-export', 'colis')}>
+                        <Ionicons name="download-outline" size={22} color={Colors.secondary} />
+                    </TouchableOpacity>
                 )}
             </View>
 
             {loading && colis.length === 0 ? (
                 <View style={styles.center}>
-                    <ActivityIndicator size="large" color={Colors.secondary} style={{ marginTop: 50 }} />
+                    <ActivityIndicator size="large" color={Colors.secondary} />
+                    <Text style={styles.loadingText}>Chargement des colis...</Text>
                 </View>
             ) : (
                 <FlatList
@@ -368,127 +390,189 @@ const AdminColisScreen = ({ navigation }) => {
                     renderItem={renderItem}
                     keyExtractor={item => item.id.toString()}
                     contentContainerStyle={styles.list}
-                    onRefresh={fetchData}
-                    refreshing={refreshing}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} />
+                    }
+                    ListEmptyComponent={
+                        <View style={styles.emptyContainer}>
+                            <Ionicons name="cube-outline" size={60} color={Colors.border} />
+                            <Text style={styles.emptyText}>Aucun colis trouvé</Text>
+                        </View>
+                    }
                 />
             )}
 
-            <Modal visible={modalVisible} animationType="slide">
-                <View style={styles.modalBg}>
-                    <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>{editColis ? 'Modifier' : 'Nouveau'} Colis</Text>
-                        <TouchableOpacity onPress={() => setModalVisible(false)}>
-                            <Ionicons name="close" size={28} color={Colors.primary} />
-                        </TouchableOpacity>
-                    </View>
-                    <ScrollView style={styles.form}>
-                        {editColis && editColis.statut !== 'en_attente' && (
-                            <View style={styles.lockBanner}>
-                                <Ionicons name="lock-closed" size={14} color="#854d0e" />
-                                <Text style={styles.lockText}>Informations de transport verrouillées (colis en cours)</Text>
-                            </View>
-                        )}
-
-                        <Text style={styles.label}>Destinataire (Nom)</Text>
-                        <TextInput style={styles.input} value={destNom} onChangeText={setDestNom} />
-
-                        <Text style={styles.label}>Destinataire (Tel)</Text>
-                        <TextInput
-                            style={[styles.input, editColis && editColis.statut !== 'en_attente' && styles.disabledInput]}
-                            value={destTel}
-                            onChangeText={setDestTel}
-                            keyboardType="phone-pad"
-                            editable={!editColis || editColis.statut === 'en_attente'}
-                        />
-
-                        <Text style={styles.label}>Prix (CFA)</Text>
-                        <TextInput
-                            style={[styles.input, editColis && editColis.statut !== 'en_attente' && styles.disabledInput]}
-                            value={prix}
-                            onChangeText={setPrix}
-                            keyboardType="numeric"
-                            editable={!editColis || editColis.statut === 'en_attente'}
-                        />
-
-                        <Text style={styles.label}>Station Départ</Text>
-                        <View style={[styles.pickerContainer, editColis && editColis.statut !== 'en_attente' && styles.disabledInput]}>
-                            <Picker
-                                selectedValue={startStation}
-                                onValueChange={setStartStation}
-                                enabled={!editColis || editColis.statut === 'en_attente'}
-                            >
-                                <Picker.Item label="Sélectionner..." value="" />
-                                {stations.map(s => <Picker.Item key={s.id} label={s.nom || s.name} value={s.id.toString()} />)}
-                            </Picker>
-                        </View>
-
-                        <Text style={styles.label}>Station Arrivée</Text>
-                        <View style={[styles.pickerContainer, editColis && editColis.statut !== 'en_attente' && styles.disabledInput]}>
-                            <Picker
-                                selectedValue={endStation}
-                                onValueChange={setEndStation}
-                                enabled={!editColis || editColis.statut === 'en_attente'}
-                            >
-                                <Picker.Item label="Sélectionner..." value="" />
-                                {stations.map(s => <Picker.Item key={s.id} label={s.nom || s.name} value={s.id.toString()} />)}
-                            </Picker>
-                        </View>
-
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                            <Text style={[styles.label, { marginBottom: 0 }]}>Expéditeur</Text>
-                            <TouchableOpacity onPress={() => setIsManualSender(!isManualSender)}>
-                                <Text style={{ color: Colors.secondary, fontSize: 12, fontFamily: 'Poppins_600SemiBold' }}>
-                                    {isManualSender ? 'Sélectionner Client' : 'Saisie Manuelle'}
-                                </Text>
+            <Modal visible={modalVisible} animationType="fade" transparent={true}>
+                <View style={styles.modalOverlay}>
+                    <KeyboardAvoidingView
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        style={styles.modalContent}
+                    >
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>{editColis ? 'Modifier le Colis' : 'Nouveau Colis'}</Text>
+                            <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeBtn}>
+                                <Ionicons name="close" size={24} color={Colors.primary} />
                             </TouchableOpacity>
                         </View>
 
-                        {isManualSender ? (
-                            <View>
-                                <TextInput
-                                    style={[styles.input, { marginBottom: 10 }]}
-                                    placeholder="Nom de l'expéditeur"
-                                    value={expediteurNom}
-                                    onChangeText={setExpediteurNom}
-                                />
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="Téléphone de l'expéditeur"
-                                    value={expediteurTel}
-                                    onChangeText={setExpediteurTel}
-                                    keyboardType="phone-pad"
-                                />
-                            </View>
-                        ) : (
-                            <View style={[styles.pickerContainer, editColis && editColis.statut !== 'en_attente' && styles.disabledInput]}>
-                                <Picker
-                                    selectedValue={expediteurId}
-                                    onValueChange={setExpediteurId}
-                                    enabled={!editColis || editColis.statut === 'en_attente'}
-                                >
-                                    <Picker.Item label="Sélectionner un client..." value="" />
-                                    {clients.map(c => <Picker.Item key={c.id} label={c.nom} value={c.id.toString()} />)}
-                                </Picker>
-                            </View>
-                        )}
+                        <ScrollView
+                            style={styles.form}
+                            showsVerticalScrollIndicator={false}
+                        >
+                            {editColis && editColis.statut !== 'en_attente' && (
+                                <View style={styles.warningBanner}>
+                                    <Ionicons name="lock-closed" size={16} color="#854d0e" />
+                                    <Text style={styles.warningText}>Le transport a commencé. Certaines modifications sont limitées.</Text>
+                                </View>
+                            )}
 
-                        <Text style={styles.label}>Statut</Text>
-                        <View style={styles.pickerContainer}>
-                            <Picker selectedValue={statut} onValueChange={setStatut}>
-                                <Picker.Item label="En attente" value="en_attente" />
-                                <Picker.Item label="En cours" value="en_cours" />
-                                <Picker.Item label="Arrivé" value="arrive" />
-                                <Picker.Item label="Livré" value="livre" />
-                                {(!editColis || editColis.statut === 'en_attente' || editColis.statut === 'annule') && (
-                                    <Picker.Item label="Annulé" value="annule" />
+                            <Text style={styles.label}>Destinataire</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Nom complet"
+                                value={destNom}
+                                onChangeText={setDestNom}
+                            />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Téléphone"
+                                value={destTel}
+                                onChangeText={setDestTel}
+                                keyboardType="phone-pad"
+                            />
+
+                            <Text style={styles.label}>Logistique</Text>
+                            <View style={styles.inputRow}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.subLabel}>Prix (CFA)</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Ex: 2000"
+                                        value={prix}
+                                        onChangeText={setPrix}
+                                        keyboardType="numeric"
+                                    />
+                                </View>
+                            </View>
+
+                            <Text style={styles.subLabel}>Station Départ</Text>
+                            <View style={styles.cityGrid}>
+                                {stations.map(s => (
+                                    <TouchableOpacity
+                                        key={s.id}
+                                        style={[styles.cityItem, startStation?.id === s.id && styles.cityItemActive]}
+                                        onPress={() => setStartStation(s)}
+                                    >
+                                        <Text style={[styles.cityItemText, startStation?.id === s.id && styles.cityItemTextActive]}>{s.nom}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+
+                            <Text style={[styles.subLabel, { marginTop: 10 }]}>Station Arrivée</Text>
+                            <View style={styles.cityGrid}>
+                                {stations.map(s => (
+                                    <TouchableOpacity
+                                        key={s.id}
+                                        style={[styles.cityItem, endStation?.id === s.id && styles.cityItemActive]}
+                                        onPress={() => setEndStation(s)}
+                                    >
+                                        <Text style={[styles.cityItemText, endStation?.id === s.id && styles.cityItemTextActive]}>{s.nom}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+
+                            <View style={styles.expediteurSection}>
+                                <View style={styles.expHeader}>
+                                    <Text style={styles.label}>Expéditeur</Text>
+                                    <TouchableOpacity onPress={() => { setIsManualSender(!isManualSender); setSelectedSender(null); }}>
+                                        <Text style={styles.switchText}>{isManualSender ? 'Chercher Client' : 'Saisie Manuelle'}</Text>
+                                    </TouchableOpacity>
+                                </View>
+
+                                {isManualSender ? (
+                                    <View>
+                                        <TextInput
+                                            style={styles.input}
+                                            placeholder="Nom de l'expéditeur"
+                                            value={manualSenderNom}
+                                            onChangeText={setManualSenderNom}
+                                        />
+                                        <TextInput
+                                            style={styles.input}
+                                            placeholder="Téléphone"
+                                            value={manualSenderTel}
+                                            onChangeText={setManualSenderTel}
+                                            keyboardType="phone-pad"
+                                        />
+                                    </View>
+                                ) : (
+                                    <View>
+                                        {selectedSender ? (
+                                            <TouchableOpacity style={styles.selectedUserCard} onPress={() => setSelectedSender(null)}>
+                                                <Ionicons name="person-circle" size={24} color={Colors.success} />
+                                                <View style={{ flex: 1, marginLeft: 10 }}>
+                                                    <Text style={styles.selectedUserName}>{selectedSender.name}</Text>
+                                                    <Text style={styles.selectedUserTel}>{selectedSender.tel}</Text>
+                                                </View>
+                                                <Ionicons name="close-circle" size={20} color={Colors.textLight} />
+                                            </TouchableOpacity>
+                                        ) : (
+                                            <View>
+                                                <View style={styles.searchBox}>
+                                                    <TextInput
+                                                        style={styles.input}
+                                                        placeholder="Rechercher un client..."
+                                                        value={senderSearch}
+                                                        onChangeText={searchUsers}
+                                                    />
+                                                </View>
+                                                {senderResults.length > 0 && (
+                                                    <View style={styles.searchResults}>
+                                                        {senderResults.slice(0, 3).map(u => (
+                                                            <TouchableOpacity key={u.id} style={styles.searchResultItem} onPress={() => { setSelectedSender(u); setSenderResults([]); }}>
+                                                                <Text style={styles.searchResultName}>{u.name}</Text>
+                                                                <Text style={styles.searchResultTel}>{u.tel}</Text>
+                                                            </TouchableOpacity>
+                                                        ))}
+                                                    </View>
+                                                )}
+                                            </View>
+                                        )}
+                                    </View>
                                 )}
-                            </Picker>
-                        </View>
+                            </View>
 
-                        <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-                            <Text style={styles.saveText}>Enregistrer</Text>
-                        </TouchableOpacity>
-                    </ScrollView>
+                            <Text style={[styles.label, { marginTop: 10 }]}>Statut Actuel</Text>
+                            <View style={styles.statusGrid}>
+                                {['en_attente', 'en_cours', 'arrive', 'livre', 'annule'].map(s => {
+                                    const info = getStatusLabel(s);
+                                    return (
+                                        <TouchableOpacity
+                                            key={s}
+                                            style={[styles.statusBtn, statut === s && { backgroundColor: info.color, borderColor: info.color }]}
+                                            onPress={() => setStatut(s)}
+                                        >
+                                            <Text style={[styles.statusBtnText, statut === s && { color: '#FFF' }]}>{info.label}</Text>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
+
+                            <TouchableOpacity
+                                style={[styles.submitBtn, submitting && { opacity: 0.7 }]}
+                                onPress={handleSave}
+                                disabled={submitting}
+                            >
+                                {submitting ? <ActivityIndicator color="#FFF" /> : (
+                                    <>
+                                        <Text style={styles.submitBtnText}>Enregistrer</Text>
+                                        <Ionicons name="checkmark-circle" size={20} color="#FFF" />
+                                    </>
+                                )}
+                            </TouchableOpacity>
+                            <View style={{ height: 30 }} />
+                        </ScrollView>
+                    </KeyboardAvoidingView>
                 </View>
             </Modal>
         </View>
@@ -497,92 +581,98 @@ const AdminColisScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.background },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
+    topHeader: {
+        paddingHorizontal: 24,
         paddingBottom: 20,
-        paddingTop: Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight || 24) + 15,
-        backgroundColor: Colors.surface
-    },
-    count: { fontSize: 16, fontFamily: 'Poppins_600SemiBold', color: Colors.textLight },
-    addBtn: { backgroundColor: Colors.secondary, flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 10 },
-    addBtnText: { color: '#FFF', marginLeft: 5, fontFamily: 'Poppins_600SemiBold' },
-    list: { padding: 15 },
-    card: { backgroundColor: Colors.surface, borderRadius: 15, padding: 16, marginBottom: 15, elevation: 2 },
-    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-    destName: { fontSize: 16, fontFamily: 'Poppins_700Bold', color: Colors.primary },
-    subtext: { fontSize: 13, color: Colors.textLight, fontFamily: 'Poppins_400Regular' },
-    statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-    statusText: { fontSize: 10, fontFamily: 'Poppins_700Bold' },
-    route: { paddingVertical: 10, borderTopWidth: 1, borderTopColor: Colors.border, borderBottomWidth: 1, borderBottomColor: Colors.border, marginBottom: 12 },
-    routeText: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: Colors.text },
-    price: { fontSize: 15, fontFamily: 'Poppins_700Bold', color: Colors.secondary, marginTop: 5 },
-    hoursRow: { flexDirection: 'row', marginTop: 8, flexWrap: 'wrap' },
-    hourItem: { flexDirection: 'row', alignItems: 'center', marginRight: 15, backgroundColor: Colors.background, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-    hourText: { fontSize: 11, color: Colors.textLight, marginLeft: 4, fontFamily: 'Poppins_500Medium' },
-    cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    expediteur: { fontSize: 12, color: Colors.textLight, fontFamily: 'Poppins_500Medium' },
-    actions: { flexDirection: 'row', alignItems: 'center' },
-    actionBtn: { padding: 8, marginLeft: 5 },
-    quickBtn: {
+        paddingTop: Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight || 24) + 10,
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 8,
-        borderWidth: 1,
-        marginRight: 10
-    },
-    quickBtnText: { fontSize: 11, fontFamily: 'Poppins_600SemiBold', marginRight: 4 },
-    modalBg: {
-        flex: 1,
         backgroundColor: Colors.surface,
-        paddingTop: Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight || 24)
     },
-    disabledInput: { opacity: 0.5, backgroundColor: '#F3F4F6' },
-    lockBanner: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#FEF9C3',
-        padding: 10,
-        borderRadius: 8,
-        marginBottom: 15,
-        borderWidth: 1,
-        borderColor: '#FEF08A'
-    },
-    lockText: {
-        fontSize: 11,
-        color: '#854d0e',
-        fontFamily: 'Poppins_500Medium',
-        marginLeft: 6,
-        flex: 1
-    },
-    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 20, borderBottomWidth: 1, borderBottomColor: Colors.border },
-    modalTitle: { fontSize: 20, fontFamily: 'Poppins_700Bold', color: Colors.primary },
-    form: { padding: 20 },
-    label: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: Colors.textLight, marginBottom: 8 },
-    input: { backgroundColor: Colors.background, borderRadius: 12, padding: 15, marginBottom: 15, fontFamily: 'Poppins_400Regular' },
-    pickerContainer: { backgroundColor: Colors.background, borderRadius: 12, marginBottom: 15, overflow: 'hidden' },
-    saveBtn: { backgroundColor: Colors.secondary, padding: 18, borderRadius: 12, alignItems: 'center', marginTop: 10, marginBottom: 50 },
-    saveText: { color: '#FFF', fontSize: 16, fontFamily: 'Poppins_700Bold' },
-    searchBar: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: Colors.background,
-        borderRadius: 12,
-        paddingHorizontal: 12,
-        height: 45,
-    },
-    searchInput: {
-        flex: 1,
-        height: '100%',
-        fontFamily: 'Poppins_400Regular',
-        fontSize: 14,
-        color: Colors.primary,
-    },
+    backBtn: { marginRight: 16 },
+    headerInfo: { flex: 1 },
+    welcomeText: { fontSize: 12, fontFamily: 'Poppins_400Regular', color: Colors.textLight, textTransform: 'uppercase', letterSpacing: 2 },
+    userName: { fontSize: 20, fontFamily: 'Poppins_700Bold', color: Colors.primary, marginTop: -2 },
+    addBtn: { backgroundColor: Colors.secondary, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
+    addBtnText: { color: '#FFF', marginLeft: 5, fontFamily: 'Poppins_600SemiBold' },
+
+    searchSection: { flexDirection: 'row', paddingHorizontal: 20, paddingVertical: 15, alignItems: 'center', gap: 10 },
+    searchBarContainer: { flex: 1, height: 45, backgroundColor: Colors.surface, borderRadius: 12, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5 },
+    searchInput: { flex: 1, marginLeft: 10, fontFamily: 'Poppins_400Regular', fontSize: 13, color: Colors.primary },
+    exportBtn: { width: 45, height: 45, backgroundColor: Colors.surface, borderRadius: 12, justifyContent: 'center', alignItems: 'center', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5 },
+
+    list: { padding: 20 },
+    card: { backgroundColor: Colors.surface, borderRadius: 20, padding: 16, marginBottom: 16, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.05, shadowRadius: 10 },
+    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 15 },
+    destName: { fontSize: 16, fontFamily: 'Poppins_700Bold', color: Colors.primary },
+    destTel: { fontSize: 12, color: Colors.textLight, fontFamily: 'Poppins_400Regular' },
+    priceBadge: { backgroundColor: Colors.secondary + '15', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10 },
+    priceText: { color: Colors.secondary, fontFamily: 'Poppins_700Bold', fontSize: 13 },
+
+    cardBody: { marginBottom: 15 },
+    routeContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: 10 },
+    stationRow: { alignItems: 'center', flex: 1 },
+    stationName: { fontSize: 13, fontFamily: 'Poppins_600SemiBold', color: Colors.primary, marginTop: 4, textAlign: 'center' },
+    routeLine: { flex: 0.8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+    dash: { flex: 1, height: 1.5, backgroundColor: Colors.border, marginHorizontal: 5 },
+    dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.border },
+
+    infoGrid: { flexDirection: 'row', backgroundColor: Colors.background, padding: 12, borderRadius: 12, gap: 10, marginTop: 10 },
+    infoBox: { flex: 1 },
+    infoLabel: { fontSize: 10, color: Colors.textLight, fontFamily: 'Poppins_400Regular', textTransform: 'uppercase' },
+    infoValue: { fontSize: 12, color: Colors.primary, fontFamily: 'Poppins_600SemiBold' },
+
+    timeline: { flexDirection: 'row', marginTop: 12, gap: 15 },
+    timeItem: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: Colors.surface, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: Colors.border },
+    timeText: { fontSize: 10, color: Colors.textLight, fontFamily: 'Poppins_600SemiBold' },
+
+    cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: Colors.border, paddingTop: 12 },
+    statusTag: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 },
+    statusTagText: { fontSize: 10, fontFamily: 'Poppins_700Bold' },
+    actions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    actionIcon: { padding: 4 },
+    quickAction: { padding: 2 },
+
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    loadingText: { marginTop: 10, color: Colors.textLight, fontFamily: 'Poppins_400Regular' },
+    emptyContainer: { alignItems: 'center', marginTop: 50, opacity: 0.5 },
+    emptyText: { marginTop: 10, fontFamily: 'Poppins_400Regular', color: Colors.textLight },
+
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+    modalContent: { backgroundColor: Colors.surface, borderTopLeftRadius: 30, borderTopRightRadius: 30, height: '90%' },
+    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24, borderBottomWidth: 1, borderBottomColor: Colors.border },
+    modalTitle: { fontSize: 18, fontFamily: 'Poppins_700Bold', color: Colors.primary },
+    closeBtn: { padding: 5 },
+    form: { padding: 24 },
+    label: { fontSize: 15, fontFamily: 'Poppins_700Bold', color: Colors.primary, marginBottom: 10 },
+    subLabel: { fontSize: 12, fontFamily: 'Poppins_600SemiBold', color: Colors.textLight, marginBottom: 8 },
+    input: { backgroundColor: Colors.background, borderRadius: 12, padding: 15, marginBottom: 15, fontFamily: 'Poppins_400Regular', fontSize: 14, color: Colors.primary },
+    inputRow: { flexDirection: 'row', gap: 15 },
+    cityGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 15 },
+    cityItem: { paddingVertical: 8, paddingHorizontal: 15, borderRadius: 10, backgroundColor: Colors.background, borderWidth: 1, borderColor: Colors.border },
+    cityItemActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+    cityItemText: { fontSize: 12, fontFamily: 'Poppins_500Medium', color: Colors.textLight },
+    cityItemTextActive: { color: '#FFF' },
+
+    expediteurSection: { marginTop: 10, marginBottom: 20, padding: 15, backgroundColor: Colors.background, borderRadius: 15 },
+    expHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
+    switchText: { color: Colors.secondary, fontSize: 12, fontFamily: 'Poppins_700Bold' },
+    selectedUserCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.surface, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: Colors.success },
+    selectedUserName: { fontSize: 14, fontFamily: 'Poppins_700Bold', color: Colors.primary },
+    selectedUserTel: { fontSize: 12, color: Colors.textLight },
+    searchResults: { backgroundColor: Colors.surface, borderRadius: 12, marginTop: -10, marginBottom: 15, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 5 },
+    searchResultItem: { padding: 12, borderBottomWidth: 1, borderBottomColor: Colors.border },
+    searchResultName: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: Colors.primary },
+    searchResultTel: { fontSize: 11, color: Colors.textLight },
+
+    statusGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 25 },
+    statusBtn: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: Colors.border },
+    statusBtnText: { fontSize: 11, fontFamily: 'Poppins_600SemiBold', color: Colors.textLight },
+
+    submitBtn: { backgroundColor: Colors.secondary, padding: 18, borderRadius: 15, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, marginTop: 10 },
+    submitBtnText: { color: '#FFF', fontSize: 16, fontFamily: 'Poppins_700Bold' },
+    warningBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FEF9C3', padding: 12, borderRadius: 12, marginBottom: 20, borderWidth: 1, borderColor: '#FEF08A' },
+    warningText: { fontSize: 11, color: '#854d0e', fontFamily: 'Poppins_500Medium', flex: 1 },
 });
 
 export default AdminColisScreen;

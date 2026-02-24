@@ -24,6 +24,8 @@ import CartScreen from '../screens/CartScreen';
 import HelpScreen from '../screens/HelpScreen';
 import CustomDrawerContent from './CustomDrawerContent';
 import ReceiptScreen from '../screens/ReceiptScreen';
+import StationsScreen from '../screens/StationsScreen';
+import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
 
 // Admin Screens
 import AdminDashboardScreen from '../screens/admin/AdminDashboardScreen';
@@ -40,6 +42,7 @@ import AdminPubScreen from '../screens/admin/AdminPubScreen';
 import AdminScannerScreen from '../screens/admin/AdminScannerScreen';
 import WelcomeScreen from '../screens/WelcomeScreen';
 import PubsNotifScreen from '../screens/PubsNotifScreen';
+import AdminCommandeScreen from '../screens/admin/AdminCommandeScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -106,6 +109,7 @@ const AdminNavigator = () => (
         <AdminStack.Screen name="AdminTarifs" component={AdminTarifScreen} options={{ headerShown: false }} />
         <AdminStack.Screen name="AdminPubs" component={AdminPubScreen} options={{ headerShown: false }} />
         <AdminStack.Screen name="AdminScanner" component={AdminScannerScreen} options={{ headerShown: false }} />
+        <AdminStack.Screen name="AdminCommandes" component={AdminCommandeScreen} options={{ headerShown: false }} />
     </AdminStack.Navigator>
 );
 
@@ -162,6 +166,30 @@ const DrawerNavigator = () => {
                 component={HelpScreen}
                 options={({ navigation }) => ({
                     title: 'Aide & Support',
+                    headerLeft: () => (
+                        <TouchableOpacity style={{ marginLeft: 20 }} onPress={() => navigation.toggleDrawer()}>
+                            <Ionicons name="apps" size={28} color={Colors.primary} />
+                        </TouchableOpacity>
+                    ),
+                })}
+            />
+            <Drawer.Screen
+                name="DrawerStations"
+                component={StationsScreen}
+                options={({ navigation }) => ({
+                    title: 'Nos Stations',
+                    headerLeft: () => (
+                        <TouchableOpacity style={{ marginLeft: 20 }} onPress={() => navigation.toggleDrawer()}>
+                            <Ionicons name="apps" size={28} color={Colors.primary} />
+                        </TouchableOpacity>
+                    ),
+                })}
+            />
+            <Drawer.Screen
+                name="DrawerPrivacy"
+                component={PrivacyPolicyScreen}
+                options={({ navigation }) => ({
+                    title: 'Politique de confidentialité',
                     headerLeft: () => (
                         <TouchableOpacity style={{ marginLeft: 20 }} onPress={() => navigation.toggleDrawer()}>
                             <Ionicons name="apps" size={28} color={Colors.primary} />
@@ -242,6 +270,36 @@ const AppNavigator = () => {
                         component={AboutScreen}
                         options={({ navigation }) => ({
                             title: 'À Propos',
+                            headerShown: true,
+                            headerStyle: { backgroundColor: Colors.surface },
+                            headerTitleStyle: { fontFamily: 'Poppins_600SemiBold' },
+                            headerLeft: () => (
+                                <TouchableOpacity style={{ marginLeft: 20 }} onPress={() => navigation.goBack()}>
+                                    <Ionicons name="apps" size={28} color={Colors.primary} />
+                                </TouchableOpacity>
+                            ),
+                        })}
+                    />
+                    <Stack.Screen
+                        name="Stations"
+                        component={StationsScreen}
+                        options={({ navigation }) => ({
+                            title: 'Nos Stations',
+                            headerShown: true,
+                            headerStyle: { backgroundColor: Colors.surface },
+                            headerTitleStyle: { fontFamily: 'Poppins_600SemiBold' },
+                            headerLeft: () => (
+                                <TouchableOpacity style={{ marginLeft: 20 }} onPress={() => navigation.goBack()}>
+                                    <Ionicons name="apps" size={28} color={Colors.primary} />
+                                </TouchableOpacity>
+                            ),
+                        })}
+                    />
+                    <Stack.Screen
+                        name="Privacy"
+                        component={PrivacyPolicyScreen}
+                        options={({ navigation }) => ({
+                            title: 'Politique de confidentialité',
                             headerShown: true,
                             headerStyle: { backgroundColor: Colors.surface },
                             headerTitleStyle: { fontFamily: 'Poppins_600SemiBold' },

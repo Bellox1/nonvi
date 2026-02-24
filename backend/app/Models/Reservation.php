@@ -107,6 +107,8 @@ class Reservation extends Model
         'prix',
         'statut',
         'user_id',
+        'guest_name',
+        'guest_phone',
         'station_depart_id',
         'station_arrivee_id',
         'qr_code',
@@ -125,6 +127,37 @@ class Reservation extends Model
     protected function serializeDate(DateTimeInterface $date)
     {
         return $date->format('Y-m-d H:i:s');
+    }
+
+    public function getStatutAttribute($value)
+    {
+        // On ne touche pas aux réservations annulées ou déjà terminées en dur
+        if (in_array($value, ['annule', 'termine'])) {
+            return $value;
+        }
+
+        try {
+            // S'assurer qu'on a un objet Carbon pour la date
+            $carbonDate = $this->date_depart instanceof \Carbon\Carbon 
+                ? $this->date_depart 
+                : \Carbon\Carbon::parse($this->date_depart);
+            
+            $departure = \Carbon\Carbon::parse($carbonDate->format('Y-m-d') . ' ' . $this->heure_depart);
+            
+            // Si l'heure de départ + 2h est passée -> Terminé
+            if ($departure->copy()->addHours(2)->isPast()) {
+                return 'termine';
+            }
+
+            // Si l'heure de départ est passée -> En trajet
+            if ($departure->isPast() && in_array($value, ['confirme', 'confirmee'])) {
+                return 'en_trajet';
+            }
+        } catch (\Exception $e) {
+            return $value;
+        }
+
+        return $value;
     }
 
 

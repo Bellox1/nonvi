@@ -35,11 +35,14 @@ class AdminDashboardController extends Controller
             'total_users' => User::count(),
             'total_clients' => User::doesntHave('roles')->count(),
             'total_products' => Produit::count(),
+            'total_commandes' => Commande::count(),
             'pending_reservations' => Reservation::where('statut', 'en_attente')->count(),
         ];
 
         if (\Illuminate\Support\Facades\Gate::allows('revenue_show')) {
-            $stats['revenue'] = Reservation::where('statut', 'termine')->sum('prix');
+            $revenue_res = Reservation::where('statut', 'termine')->sum('prix');
+            $revenue_com = Commande::sum('prix_total');
+            $stats['revenue'] = $revenue_res + $revenue_com;
         }
 
         $recent_reservations = Reservation::with(['user', 'station_depart', 'station_arrivee'])

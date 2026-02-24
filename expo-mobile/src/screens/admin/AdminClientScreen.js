@@ -134,7 +134,7 @@ const AdminClientScreen = ({ navigation }) => {
                 </View>
                 <View style={styles.details}>
                     <Text style={styles.userName}>{item.name || item.nom}</Text>
-                    <Text style={styles.userEmail}>{item.tel || item.telephone || 'Pas de tel'}</Text>
+                    <Text style={styles.userEmail}>{item.unique_id ? `ID: ${item.unique_id} • ` : ''}{item.tel || item.telephone || 'Pas de tel'}</Text>
                     <Text style={styles.userSubtext}>{item.email || 'Pas d\'email'}</Text>
                     <View style={styles.pointsBadge}>
                         <Ionicons name="star" size={12} color={Colors.secondary} />

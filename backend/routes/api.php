@@ -31,7 +31,9 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1'], functi
         // Transport (Reservations)
         Route::get('transport', 'TransportController@index');
         Route::post('transport', 'TransportController@store');
+        Route::get('transport/availability', 'TransportController@getAvailability');
         Route::get('settings/price', 'Admin\AdminSettingController@getPrice');
+        Route::get('settings/capacity', 'Admin\AdminSettingController@getBusCapacity');
 
         // Commandes (Produits)
         Route::get('commandes', 'CommandeController@index');
@@ -60,6 +62,13 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1'], functi
             Route::get('produits-export', 'AdminProduitController@export');
             Route::delete('produits/{id}', 'AdminProduitController@destroy');
 
+            // Commandes (Produits)
+            Route::get('commandes', 'AdminCommandeController@index');
+            Route::post('commandes', 'AdminCommandeController@store');
+            Route::put('commandes/{id}', 'AdminCommandeController@update');
+            Route::delete('commandes/{id}', 'AdminCommandeController@destroy');
+            Route::get('commandes-export', 'AdminCommandeController@export');
+
             // Clients
             Route::get('clients', 'AdminClientController@index');
             Route::post('clients', 'AdminClientController@store');
@@ -78,6 +87,8 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1'], functi
 
             // Reservations
             Route::get('reservations', 'AdminReservationController@index');
+            Route::post('reservations', 'AdminReservationController@store');
+            Route::get('reservations/users', 'AdminReservationController@searchUsers');
             Route::patch('reservations/{id}/status', 'AdminReservationController@updateStatus');
             Route::post('reservations/bulk-status', 'AdminReservationController@bulkUpdateStatus');
             Route::post('reservations/scan', 'AdminReservationController@scan');
@@ -94,6 +105,8 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1'], functi
             // Settings
             Route::get('settings/price', 'AdminSettingController@getPrice');
             Route::post('settings/price', 'AdminSettingController@updatePrice');
+            Route::get('settings/capacity', 'AdminSettingController@getBusCapacity');
+            Route::post('settings/capacity', 'AdminSettingController@updateBusCapacity');
 
             // Roles & Permissions
             Route::get('roles', 'AdminRoleController@index');

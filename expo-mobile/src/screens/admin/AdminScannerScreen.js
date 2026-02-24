@@ -28,6 +28,22 @@ export default function AdminScannerScreen({ navigation }) {
         try {
             console.log("Scanned raw data:", data);
 
+            // 1. Validation locale : Eviter de scanner les liens Expo ou sites web
+            if (!data || (!data.startsWith('NVT_SECURE_v1:') && !data.startsWith('NVT:'))) {
+                Alert.alert(
+                    "Format Invalide ❌",
+                    "Ceci n'est pas un ticket Nonvi. Veuillez scanner un QR code de ticket valide.",
+                    [{
+                        text: "Réessayer", onPress: () => {
+                            isScanning.current = false;
+                            setScanned(false);
+                            setLoading(false);
+                        }
+                    }]
+                );
+                return;
+            }
+
             let ticketCode = data;
             // Decode if it's our obfuscated format
             if (data.startsWith('NVT_SECURE_v1:')) {
@@ -36,7 +52,7 @@ export default function AdminScannerScreen({ navigation }) {
                     ticketCode = decoded.replace('NV_HASH_92_', '').replace('_31_NONVI', '');
                     console.log("Decoded secure ticket code:", ticketCode);
                 } catch (e) {
-                    console.warn("Could not decode secure data");
+                    throw new Error("Impossible de décoder ce ticket sécurisé.");
                 }
             } else if (data.startsWith('NVT:')) {
                 try {
@@ -63,7 +79,7 @@ export default function AdminScannerScreen({ navigation }) {
             );
         } catch (error) {
             console.error(error);
-            const errorMsg = error.response?.data?.message || "Erreur de validation du ticket";
+            const errorMsg = error.response?.data?.message || error.message || "Erreur de validation du ticket";
             Alert.alert(
                 "Erreur ❌",
                 errorMsg,

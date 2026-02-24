@@ -13,10 +13,12 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use App\Notifications\CustomResetPassword;
+use Illuminate\Support\Str;
+use App\Traits\Auditable;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, SoftDeletes, Notifiable, HasFactory;
+    use HasApiTokens, SoftDeletes, Notifiable, HasFactory, Auditable;
 
     public $table = 'users';
 
@@ -38,6 +40,7 @@ class User extends Authenticatable
     ];
 
     protected $fillable = [
+        'unique_id',
         'name',
         'email',
         'tel',
@@ -60,6 +63,20 @@ class User extends Authenticatable
         'qr_status_updated_at' => 'datetime',
         'phone_verified_at' => 'datetime',
     ];
+
+    protected static function booted()
+    {
+        parent::booted();
+
+        static::creating(function ($user) {
+            if (!$user->unique_id) {
+                do {
+                    $uniqueId = rand(10000000, 99999999);
+                } while (static::where('unique_id', $uniqueId)->exists());
+                $user->unique_id = $uniqueId;
+            }
+        });
+    }
 
     protected function serializeDate(DateTimeInterface $date)
     {

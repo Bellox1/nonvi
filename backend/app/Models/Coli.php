@@ -37,6 +37,8 @@ class Coli extends Model
         'station_arrivee_id',
         'user_id',
         'expediteur_id',
+        'expediteur_nom',
+        'expediteur_tel',
         'created_at',
         'updated_at',
         'deleted_at',

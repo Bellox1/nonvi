@@ -24,6 +24,7 @@ class AdminClientController extends Controller
         $data = $clients->map(function($c) {
             return [
                 $c->id,
+                $c->unique_id,
                 $c->name,
                 $c->tel,
                 $c->email,
@@ -33,7 +34,7 @@ class AdminClientController extends Controller
         });
 
         return $this->downloadCsv($data, 'clients-' . date('Y-m-d'), [
-            'ID', 'Nom', 'Téléphone', 'Email', 'Points', 'Date Inscription'
+            'ID', 'ID Unique', 'Nom', 'Téléphone', 'Email', 'Points', 'Date Inscription'
         ]);
     }
     private function checkAdmin()
@@ -56,7 +57,8 @@ class AdminClientController extends Controller
             $query->where(function($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('tel', 'like', "%{$search}%");
+                  ->orWhere('tel', 'like', "%{$search}%")
+                  ->orWhere('unique_id', 'like', "%{$search}%");
             });
         }
 

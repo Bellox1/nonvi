@@ -129,7 +129,9 @@ class AdminColisController extends Controller
             'prix' => 'required|numeric|min:0',
             'station_depart_id' => 'required|exists:stations,id',
             'station_arrivee_id' => 'required|exists:stations,id|different:station_depart_id',
-            'expediteur_id' => 'required|exists:users,id',
+            'expediteur_id' => 'required_without:expediteur_nom|nullable|exists:users,id',
+            'expediteur_nom' => 'required_without:expediteur_id|nullable|string|max:255',
+            'expediteur_tel' => 'required_without:expediteur_id|nullable|string|max:20',
             'statut' => 'required|string',
         ]);
 
@@ -165,7 +167,9 @@ class AdminColisController extends Controller
             'prix' => 'required|numeric|min:0',
             'station_depart_id' => 'required|exists:stations,id',
             'station_arrivee_id' => 'required|exists:stations,id|different:station_depart_id',
-            'expediteur_id' => 'required|exists:users,id',
+            'expediteur_id' => 'required_without:expediteur_nom|nullable|exists:users,id',
+            'expediteur_nom' => 'required_without:expediteur_id|nullable|string|max:255',
+            'expediteur_tel' => 'required_without:expediteur_id|nullable|string|max:20',
             'statut' => 'required|string',
         ]);
 
@@ -181,7 +185,7 @@ class AdminColisController extends Controller
 
         return response()->json([
             'message' => 'Colis mis à jour',
-            'colis' => $colis->load(['station_depart', 'station_arrivee', 'user', 'expediteur'])
+            'colis' => $colis->refresh()->load(['station_depart', 'station_arrivee', 'user', 'expediteur'])
         ]);
     }
 

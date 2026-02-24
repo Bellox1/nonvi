@@ -35,6 +35,32 @@ const TransportScreen = ({ navigation }) => {
     const [pickerVisible, setPickerVisible] = useState(false);
     const [pickerType, setPickerType] = useState('');
 
+    const [availability, setAvailability] = useState({});
+    const [busCapacity, setBusCapacity] = useState(50);
+    const [loadingAvailability, setLoadingAvailability] = useState(false);
+
+    const fetchAvailability = async () => {
+        if (!selectedDate || !startStation) return;
+        setLoadingAvailability(true);
+        try {
+            const res = await client.get('/transport/availability', {
+                params: { date: selectedDate, station_id: startStation }
+            });
+            setAvailability(res.data.availability || {});
+            setBusCapacity(res.data.capacity || 50);
+        } catch (e) {
+            console.error('Error fetching availability:', e);
+        } finally {
+            setLoadingAvailability(false);
+        }
+    };
+
+    useEffect(() => {
+        if (selectedDate && startStation) {
+            fetchAvailability();
+        }
+    }, [selectedDate, startStation]);
+
     const getLocalDateString = (date = new Date()) => {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -78,7 +104,10 @@ const TransportScreen = ({ navigation }) => {
         }
     };
 
-    useFocusEffect(useCallback(() => { fetchStations(); }, []));
+    useFocusEffect(useCallback(() => {
+        fetchStations();
+        fetchAvailability();
+    }, [selectedDate, startStation]));
 
     const calculateTotal = () => currentPrice * parseInt(numTickets);
 
@@ -137,13 +166,20 @@ const TransportScreen = ({ navigation }) => {
             }
         } catch (e) {
             subscription.remove();
-            showToast('Une erreur est survenue', 'error');
+            const errorMsg = e.response?.data?.message || 'Une erreur est survenue lors de la réservation';
+            showToast(errorMsg, 'error');
         } finally {
             setSubmitting(false);
         }
     };
 
-    const openPicker = (type) => { setPickerType(type); setPickerVisible(true); };
+    const openPicker = (type) => {
+        setPickerType(type);
+        setPickerVisible(true);
+        if (type === 'time') {
+            fetchAvailability();
+        }
+    };
 
     const selectItem = (value) => {
         if (pickerType === 'city_start') {
@@ -325,6 +361,9 @@ const TransportScreen = ({ navigation }) => {
                                 <X size={24} color={Colors.text} />
                             </TouchableOpacity>
                         </View>
+                        {loadingAvailability && pickerType === 'time' && (
+                            <ActivityIndicator size="small" color={Colors.secondary} style={{ marginBottom: 10 }} />
+                        )}
                         <FlatList
                             data={getPickerData()}
                             keyExtractor={item => item.id}
@@ -338,15 +377,45 @@ const TransportScreen = ({ navigation }) => {
                                     (pickerType === 'date' && selectedDate === item.value) ||
                                     (pickerType === 'time' && selectedTime === item.value);
 
+                                let remaining = null;
+                                if (pickerType === 'time') {
+                                    remaining = availability[item.value] !== undefined ? availability[item.value] : busCapacity;
+                                }
+
+                                const isFull = remaining === 0;
+
                                 return (
                                     <TouchableOpacity
-                                        style={[styles.modalItem, isSelected && styles.modalItemSelected]}
-                                        onPress={() => selectItem(item.value)}
+                                        style={[
+                                            styles.modalItem,
+                                            isSelected && styles.modalItemSelected,
+                                            isFull && { opacity: 0.5 }
+                                        ]}
+                                        onPress={() => !isFull && selectItem(item.value)}
+                                        disabled={isFull}
                                     >
-                                        <Text style={[styles.modalItemText, isSelected && styles.modalItemTextSelected]}>
-                                            {item.label}
-                                        </Text>
-                                        {isSelected && <Ionicons name="checkmark-circle" size={20} color={Colors.secondary} />}
+                                        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                                            <Text style={[styles.modalItemText, isSelected && styles.modalItemTextSelected]}>
+                                                {item.label}
+                                            </Text>
+
+                                            {remaining !== null && (
+                                                remaining === 0 ? (
+                                                    <View style={[styles.seatBadge, styles.badgeRed]}>
+                                                        <Text style={styles.seatBadgeText}>Complet</Text>
+                                                    </View>
+                                                ) : (
+                                                    <Text style={{
+                                                        fontSize: 12,
+                                                        color: remaining < 10 ? '#EF4444' : Colors.textLight,
+                                                        fontWeight: remaining < 10 ? '700' : '400'
+                                                    }}>
+                                                        {remaining} places
+                                                    </Text>
+                                                )
+                                            )}
+                                        </View>
+                                        {isSelected && <Ionicons name="checkmark-circle" size={20} color={Colors.secondary} style={{ marginLeft: 10 }} />}
                                     </TouchableOpacity>
                                 );
                             }}
@@ -424,6 +493,21 @@ const styles = StyleSheet.create({
         color: Colors.secondary,
         fontWeight: '700',
     },
+    seatBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 10,
+        marginLeft: 10,
+    },
+    seatBadgeText: {
+        fontSize: 10,
+        fontFamily: 'System',
+        fontWeight: '700',
+        color: '#FFF',
+    },
+    badgeGreen: { backgroundColor: '#10B981' },
+    badgeOrange: { backgroundColor: '#F59E0B' },
+    badgeRed: { backgroundColor: '#EF4444' },
 });
 
 export default TransportScreen;

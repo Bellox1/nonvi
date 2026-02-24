@@ -110,7 +110,7 @@ const HomeScreen = ({ navigation }) => {
                 {/* Logo centré */}
                 <View style={styles.headerCenter}>
                     <Image
-                        source={require('../../assets/app_image.png')}
+                        source={require('../../assets/image_app.png')}
                         style={styles.headerLogo}
                         resizeMode="contain"
                     />

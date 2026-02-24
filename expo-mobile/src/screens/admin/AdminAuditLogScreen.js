@@ -11,6 +11,8 @@ import {
     Platform,
     StatusBar,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import Toast, { useToast } from '../../components/Toast';
 import client from '../../api/client';
 import Colors from '../../theme/Colors';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,6 +34,7 @@ import { useAuth } from '../../context/AuthContext';
 
 const AdminAuditLogScreen = ({ navigation }) => {
     const { hasPermission } = useAuth();
+    const { toastRef, showToast } = useToast();
     const canShowDetails = hasPermission('audit_log_show');
     const canExport = hasPermission('export_csv');
 
@@ -39,6 +42,16 @@ const AdminAuditLogScreen = ({ navigation }) => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [selectedLog, setSelectedLog] = useState(null);
+
+    const handleCopy = async (data) => {
+        try {
+            const text = JSON.stringify(data, null, 2);
+            await Clipboard.setStringAsync(text);
+            showToast('Données copiées !', 'info');
+        } catch (e) {
+            showToast('Erreur de copie', 'error');
+        }
+    };
 
     const fetchLogs = async () => {
         try {
@@ -54,6 +67,12 @@ const AdminAuditLogScreen = ({ navigation }) => {
 
     useEffect(() => {
         fetchLogs();
+        // Auto-refresh every 10 seconds for real-time monitoring
+        const interval = setInterval(() => {
+            fetchLogs();
+        }, 10000);
+
+        return () => clearInterval(interval);
     }, []);
 
     const renderItem = ({ item }) => {
@@ -82,6 +101,7 @@ const AdminAuditLogScreen = ({ navigation }) => {
     return (
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor={Colors.surface} />
+            <Toast ref={toastRef} />
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 15 }}>
                     <Ionicons name="arrow-back" size={24} color={Colors.primary} />
@@ -140,7 +160,15 @@ const AdminAuditLogScreen = ({ navigation }) => {
                                     <Text style={styles.value}>{selectedLog.host}</Text>
 
                                     <Text style={styles.label}>Données</Text>
-                                    <Text style={styles.json}>{JSON.stringify(selectedLog.properties, null, 2)}</Text>
+                                    <View style={styles.jsonContainer}>
+                                        <Text style={styles.json}>{JSON.stringify(selectedLog.properties, null, 2)}</Text>
+                                        <TouchableOpacity
+                                            onPress={() => handleCopy(selectedLog.properties)}
+                                            style={styles.copyIconInside}
+                                        >
+                                            <Ionicons name="copy-outline" size={18} color={Colors.secondary} />
+                                        </TouchableOpacity>
+                                    </View>
                                 </View>
                             )}
                         </ScrollView>
@@ -184,7 +212,9 @@ const styles = StyleSheet.create({
     value: { fontSize: 15, color: Colors.primary, marginTop: 5 },
     badge: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, marginTop: 6, alignSelf: 'flex-start' },
     badgeText: { fontSize: 14, fontWeight: '700' },
-    json: { backgroundColor: Colors.background, padding: 15, borderRadius: 10, marginTop: 10, fontSize: 12, color: Colors.text, fontFamily: 'monospace' }
+    jsonContainer: { marginTop: 10, position: 'relative' },
+    json: { backgroundColor: Colors.background, padding: 15, borderRadius: 10, fontSize: 12, color: Colors.text, fontFamily: 'monospace' },
+    copyIconInside: { position: 'absolute', top: 10, right: 10, padding: 5 }
 });
 
 export default AdminAuditLogScreen;

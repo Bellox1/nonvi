@@ -26,7 +26,7 @@ const AboutScreen = ({ navigation }) => {
             <ScrollView showsVerticalScrollIndicator={false}>
                 <View style={styles.header}>
                     <Image
-                        source={require('../../assets/app_image.png')}
+                        source={require('../../assets/image_app.png')}
                         style={styles.logo}
                         resizeMode="contain"
                     />

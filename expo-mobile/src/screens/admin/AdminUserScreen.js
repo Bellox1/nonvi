@@ -202,7 +202,8 @@ const AdminUserScreen = ({ navigation }) => {
                 </View>
                 <View style={styles.details}>
                     <Text style={styles.userName}>{item.name}</Text>
-                    <Text style={styles.userEmail}>{item.tel || 'Pas de tel'} • {item.email || 'Pas d\'email'}</Text>
+                    <Text style={styles.userEmail}>{item.unique_id ? `ID: ${item.unique_id} • ` : ''}{item.tel || 'Pas de tel'}</Text>
+                    <Text style={styles.userEmail}>{item.email || 'Pas d\'email'}</Text>
                     <View style={styles.roleRow}>
                         {item.roles && item.roles.length > 0 ? (
                             item.roles.map(role => (

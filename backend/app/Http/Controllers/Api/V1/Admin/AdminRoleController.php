@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\Permission;
+use App\Models\AuditLog;
 use Illuminate\Http\Request;
 
 class AdminRoleController extends Controller
@@ -54,8 +55,26 @@ class AdminRoleController extends Controller
             'permissions.*' => 'exists:permissions,id',
         ]);
 
+        $oldPermissions = $role->permissions->pluck('title')->toArray();
+
         $role->update($request->all());
         $role->permissions()->sync($request->input('permissions', []));
+
+        $newPermissions = Permission::whereIn('id', $request->input('permissions', []))->pluck('title')->toArray();
+
+        // Log permissions change
+        AuditLog::create([
+            'description'  => 'audit:updated',
+            'subject_id'   => $role->id,
+            'subject_type' => Role::class,
+            'user_id'      => auth()->id(),
+            'properties'   => [
+                'role' => $role->title,
+                'old_permissions' => $oldPermissions,
+                'new_permissions' => $newPermissions,
+            ],
+            'host'         => request()->ip(),
+        ]);
 
         return response()->json([
             'message' => 'Rôle mis à jour',
@@ -73,6 +92,8 @@ class AdminRoleController extends Controller
         if ($role->id === 1) {
             return response()->json(['message' => 'Impossible de supprimer le rôle Admin'], 403);
         }
+
+        $roleName = $role->title;
         $role->delete();
 
         return response()->json(['message' => 'Rôle supprimé']);

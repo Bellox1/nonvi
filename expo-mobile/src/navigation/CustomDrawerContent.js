@@ -44,6 +44,7 @@ const CustomDrawerContent = (props) => {
     ];
 
     const extraItems = [
+        { label: 'Nos Stations', icon: 'map-outline', screen: 'DrawerStations', type: 'drawer' },
         { label: 'À Propos', icon: 'information-circle-outline', screen: 'DrawerAbout', type: 'drawer' },
         { label: 'Aide & Support', icon: 'help-circle-outline', screen: 'DrawerHelp', type: 'drawer' },
     ];
@@ -66,10 +67,10 @@ const CustomDrawerContent = (props) => {
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: Colors.primary }} edges={['top', 'bottom']}>
             <View style={styles.header}>
-                <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{user?.name?.charAt(0).toUpperCase()}</Text>
-                </View>
                 <View style={styles.userInfo}>
+                    {user?.unique_id && (
+                        <Text style={styles.userId}>ID: {user.unique_id}</Text>
+                    )}
                     <Text style={styles.userName} numberOfLines={1}>{user?.name}</Text>
                     <Text style={styles.userEmail} numberOfLines={1}>{user?.email}</Text>
                 </View>
@@ -150,6 +151,13 @@ const CustomDrawerContent = (props) => {
                     <Ionicons name="log-out-outline" size={22} color={Colors.error} />
                     <Text style={styles.logoutText}>Déconnexion</Text>
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={styles.privacyFooter}
+                    onPress={() => navigation.navigate('DrawerPrivacy')}
+                >
+                    <Text style={styles.privacyFooterText}>Politique de confidentialité</Text>
+                </TouchableOpacity>
             </View>
         </SafeAreaView>
     );
@@ -177,8 +185,13 @@ const styles = StyleSheet.create({
         color: '#FFF',
     },
     userInfo: {
-        marginLeft: 16,
         flex: 1,
+    },
+    userId: {
+        fontSize: 20,
+        fontFamily: 'Poppins_600SemiBold',
+        color: 'rgba(158, 153, 153, 1)',
+        marginBottom: 4,
     },
     userName: {
         fontSize: 16,
@@ -196,9 +209,9 @@ const styles = StyleSheet.create({
     drawerItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 12,
+        paddingVertical: 10,
         paddingHorizontal: 24,
-        marginVertical: 4,
+        marginVertical: 2,
         marginHorizontal: 8,
         borderRadius: 12,
     },
@@ -207,7 +220,7 @@ const styles = StyleSheet.create({
     },
     drawerLabel: {
         marginLeft: 16,
-        fontSize: 15,
+        fontSize: 13,
         fontFamily: 'Poppins_500Medium',
         color: 'rgba(255,255,255,0.8)',
     },
@@ -224,7 +237,7 @@ const styles = StyleSheet.create({
     footer: {
         padding: 24,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.1)',
+        borderTopColor: 'rgba(207, 192, 192, 0.1)',
     },
     logoutButton: {
         flexDirection: 'row',
@@ -268,6 +281,16 @@ const styles = StyleSheet.create({
         width: 1,
         height: 20,
         backgroundColor: 'rgba(255,255,255,0.1)',
+    },
+    privacyFooter: {
+        marginTop: 15,
+        alignItems: 'center',
+    },
+    privacyFooterText: {
+        fontSize: 11,
+        fontFamily: 'Poppins_400Regular',
+        color: 'rgba(255,255,255,0.4)',
+        textDecorationLine: 'underline',
     },
 });
 

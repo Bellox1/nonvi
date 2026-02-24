@@ -148,7 +148,7 @@ const RegisterScreen = ({ navigation }) => {
                 {/* Branding en bas de l'image */}
                 <View style={styles.branding}>
                     <Image
-                        source={require('../../assets/app_image.png')}
+                        source={require('../../assets/image_app.png')}
                         style={styles.logo}
                         resizeMode="contain"
                     />

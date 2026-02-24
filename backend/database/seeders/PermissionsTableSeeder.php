@@ -226,6 +226,26 @@ class PermissionsTableSeeder extends Seeder
                 'id'    => 54,
                 'title' => 'export_csv',
             ],
+            [
+                'id'    => 55,
+                'title' => 'commande_create',
+            ],
+            [
+                'id'    => 56,
+                'title' => 'commande_edit',
+            ],
+            [
+                'id'    => 57,
+                'title' => 'commande_show',
+            ],
+            [
+                'id'    => 58,
+                'title' => 'commande_delete',
+            ],
+            [
+                'id'    => 59,
+                'title' => 'commande_access',
+            ],
         ];
 
         foreach ($permissions as $permission) {

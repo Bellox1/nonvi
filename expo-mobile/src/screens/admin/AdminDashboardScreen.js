@@ -38,12 +38,19 @@ const StatCard = ({ title, value, icon, bgColor = Colors.secondary, fullWidth = 
     </View>
 );
 
-const ModuleCard = ({ title, icon, onPress }) => (
-    <TouchableOpacity style={styles.moduleCard} onPress={onPress}>
-        <View style={styles.moduleIcon}>
-            <Ionicons name={icon} size={22} color={Colors.primary} />
+const ModuleCard = ({ title, icon, onPress, fullWidth = false, bgColor, textColor }) => (
+    <TouchableOpacity
+        style={[
+            styles.moduleCard,
+            fullWidth && { width: '100%' },
+            bgColor && { backgroundColor: bgColor, shadowColor: bgColor, elevation: 6 }
+        ]}
+        onPress={onPress}
+    >
+        <View style={[styles.moduleIcon, bgColor && { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
+            <Ionicons name={icon} size={22} color={textColor || Colors.primary} />
         </View>
-        <Text style={styles.moduleTitle} numberOfLines={1}>{title}</Text>
+        <Text style={[styles.moduleTitle, textColor && { color: textColor }]} numberOfLines={1}>{title}</Text>
     </TouchableOpacity>
 );
 
@@ -136,7 +143,7 @@ const AdminDashboardScreen = () => {
                     <View style={styles.statsGrid}>
                         <StatCard title="Réservations" value={data?.stats?.total_reservations || 0} icon="car" />
                         <StatCard title="En attente" value={data?.stats?.pending_reservations || 0} icon="time" />
-                        {hasPermission('produit_access') && <StatCard title="Produits" value={data?.stats?.total_products || 0} icon="basket" />}
+                        {hasPermission('commande_access') && <StatCard title="Commandes" value={data?.stats?.total_commandes || 0} icon="newspaper" />}
                         {hasPermission('client_access') && <StatCard title="Clients" value={data?.stats?.total_clients || 0} icon="person-add" />}
                         {hasPermission('revenue_show') && <StatCard title="Revenus" value={`${data?.stats?.revenue || 0} CFA`} icon="wallet" bgColor={Colors.tertiary} fullWidth={true} />}
                     </View>
@@ -145,12 +152,22 @@ const AdminDashboardScreen = () => {
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Modules de Gestion</Text>
                         <View style={styles.moduleGrid}>
+                            {hasPermission('reservation_access') && (
+                                <ModuleCard
+                                    title="Gestion des Réservations"
+                                    icon="book"
+                                    fullWidth={true}
+                                    bgColor={Colors.tertiary}
+                                    textColor="#FFF"
+                                    onPress={() => navigation.navigate('AdminReservations')}
+                                />
+                            )}
                             {hasPermission('station_access') && <ModuleCard title="Stations" icon="location" onPress={() => navigation.navigate('AdminStations')} />}
                             {hasPermission('produit_access') && <ModuleCard title="Produits" icon="cart" onPress={() => navigation.navigate('AdminProducts')} />}
                             {hasPermission('client_access') && <ModuleCard title="Clients" icon="people" onPress={() => navigation.navigate('AdminClients')} />}
                             {hasPermission('coli_access') && <ModuleCard title="Colis" icon="cube" onPress={() => navigation.navigate('AdminColis')} />}
+                            {hasPermission('commande_access') && <ModuleCard title="Commandes" icon="receipt-outline" onPress={() => navigation.navigate('AdminCommandes')} />}
                             {hasPermission('user_access') && <ModuleCard title="Comptes" icon="person-add" onPress={() => navigation.navigate('AdminUsers')} />}
-                            {hasPermission('reservation_access') && <ModuleCard title="Réservations" icon="book" onPress={() => navigation.navigate('AdminReservations')} />}
                             {hasPermission('role_access') && <ModuleCard title="Rôles" icon="shield-checkmark" onPress={() => navigation.navigate('AdminRoles')} />}
                             {hasPermission('audit_log_access') && <ModuleCard title="Logs" icon="list" onPress={() => navigation.navigate('AdminLogs')} />}
                             {hasPermission('setting_access') && <ModuleCard title="Tarification" icon="cash" onPress={() => navigation.navigate('AdminTarifs')} />}

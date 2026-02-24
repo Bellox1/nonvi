@@ -64,6 +64,11 @@ const PERM_LABELS = {
     setting_edit: 'Modifier les Tarifs',
     revenue_show: 'Voir les revenus (Dashboard)',
     dashboard_access: 'Accès au Tableau de Bord',
+    commande_create: 'Créer une commande',
+    commande_edit: 'Modifier une commande',
+    commande_show: 'Détails des commandes',
+    commande_delete: 'Supprimer une commande',
+    commande_access: 'Accès Module Commandes',
 };
 
 const getLabel = (slug) =>
@@ -79,11 +84,13 @@ const MODULE_ORDER = [
     { key: 'client', label: 'Clients' },
     { key: 'station', label: 'Stations' },
     { key: 'produit', label: 'Produits' },
+    { key: 'commande', label: 'Commandes' },
     { key: 'reservation', label: 'Réservations' },
     { key: 'coli', label: 'Colis' },
     { key: 'audit_log', label: 'Logs d\'Audit' },
     { key: 'pub', label: 'Publicités' },
     { key: 'setting', label: 'Tarifs' },
+    { key: 'revenue', label: 'Revenus' },
     { key: 'profile', label: 'Profil' },
 ];
 

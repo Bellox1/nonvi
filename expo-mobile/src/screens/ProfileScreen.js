@@ -304,6 +304,9 @@ const ProfileScreen = ({ navigation }) => {
                                 <Ionicons name="person" size={40} color="#FFF" />
                             </View>
                             <Text style={styles.userName}>{user?.name}</Text>
+                            {user?.unique_id && (
+                                <Text style={styles.userId}>ID: {user.unique_id}</Text>
+                            )}
                         </View>
 
                         <View style={styles.infoCol}>
@@ -803,6 +806,13 @@ const styles = StyleSheet.create({
         color: Colors.primary,
         textAlign: 'center',
         marginTop: 8,
+    },
+    userId: {
+        fontSize: 12,
+        fontFamily: 'Poppins_600SemiBold',
+        color: Colors.secondary,
+        textAlign: 'center',
+        marginTop: 2,
     },
     userEmail: {
         fontSize: 14,

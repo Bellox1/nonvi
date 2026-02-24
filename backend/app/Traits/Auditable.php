@@ -10,16 +10,22 @@ trait Auditable
     public static function bootAuditable()
     {
         static::created(function (Model $model) {
-            self::audit('audit:created', $model);
+            static::audit('audit:created', $model);
         });
 
         static::updated(function (Model $model) {
-            self::audit('audit:updated', $model, $model->getChanges());
+            static::audit('audit:updated', $model, $model->getChanges());
         });
 
         static::deleted(function (Model $model) {
-            self::audit('audit:deleted', $model);
+            static::audit('audit:deleted', $model);
         });
+
+        if (method_exists(static::class, 'restored')) {
+            static::restored(function (Model $model) {
+                static::audit('audit:restored', $model);
+            });
+        }
     }
 
     protected static function audit($description, $model, $changes = [])
@@ -27,9 +33,9 @@ trait Auditable
         AuditLog::create([
             'description'  => $description,
             'subject_id'   => $model->id ?? null,
-            'subject_type' => sprintf('%s#%s', get_class($model), $model->id) ?? null,
+            'subject_type' => get_class($model),
             'user_id'      => auth()->id() ?? null,
-            'properties'   => $changes ?: $model,
+            'properties'   => !empty($changes) ? $changes : $model->getAttributes(),
             'host'         => request()->ip() ?? null,
         ]);
     }

@@ -10,8 +10,11 @@ import {
     Modal,
     Platform,
     StatusBar,
-    TextInput
+    TextInput,
+    KeyboardAvoidingView,
+    ScrollView
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import client from '../../api/client';
 import Colors from '../../theme/Colors';
@@ -38,6 +41,124 @@ const AdminReservationScreen = ({ navigation }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [showSearch, setShowSearch] = useState(false);
 
+    // Create Reservation States
+    const [createModalVisible, setCreateModalVisible] = useState(false);
+    const [stations, setStations] = useState([]);
+    const [cities, setCities] = useState([]);
+    const [userSearchResults, setUserSearchResults] = useState([]);
+    const [userSearchLoading, setUserSearchLoading] = useState(false);
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [userSearchText, setUserSearchText] = useState('');
+
+    const getRoundedTime = () => {
+        const now = new Date();
+        const ms = 1000 * 60 * 15;
+        const rounded = new Date(Math.ceil(now.getTime() / ms) * ms);
+        return rounded;
+    };
+
+    const [formData, setFormData] = useState({
+        guest_name: '',
+        guest_phone: '',
+        station_depart_id: '',
+        station_arrivee_id: '',
+        date_depart: new Date().toISOString().split('T')[0],
+        heure_depart: getRoundedTime().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace(':', 'H').split('H').join(':'),
+        nombre_tickets: '1',
+        prix: '0'
+    });
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [showTimePicker, setShowTimePicker] = useState(false);
+    const [unitPrice, setUnitPrice] = useState(0);
+    const [creating, setCreating] = useState(false);
+
+    const fetchStations = async () => {
+        try {
+            const [stationsRes, priceRes] = await Promise.all([
+                client.get('/stations'),
+                client.get('/admin/settings/price')
+            ]);
+            setStations(stationsRes.data);
+            const uniqueCities = [...new Set(stationsRes.data.map(s => s.ville))].sort();
+            setCities(uniqueCities);
+
+            setFormData(prev => ({
+                ...prev,
+                prix: priceRes.data.prix.toString()
+            }));
+            setUnitPrice(priceRes.data.prix);
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const handleSearchUser = async (text) => {
+        setUserSearchLoading(true);
+        try {
+            const res = await client.get('/admin/reservations/users', { params: { q: text } });
+            setUserSearchResults(res.data);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setUserSearchLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (userSearchText.length >= 2) {
+                handleSearchUser(userSearchText);
+            } else {
+                setUserSearchResults([]);
+            }
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [userSearchText]);
+
+    useEffect(() => {
+        const tickets = parseInt(formData.nombre_tickets) || 0;
+        const total = tickets * unitPrice;
+        setFormData(prev => ({ ...prev, prix: total.toString() }));
+    }, [formData.nombre_tickets, unitPrice]);
+
+    const handleCreateReservation = async () => {
+        if (!formData.station_depart_id || !formData.station_arrivee_id || !formData.date_depart || !formData.heure_depart) {
+            Alert.alert('Erreur', 'Veuillez remplir tous les champs obligatoires');
+            return;
+        }
+
+        if (formData.station_depart_id === formData.station_arrivee_id) {
+            Alert.alert('Erreur', 'Le départ et l\'arrivée ne peuvent pas être identiques');
+            return;
+        }
+
+        if (!selectedUser && !formData.guest_name) {
+            Alert.alert('Erreur', 'Veuillez sélectionner un utilisateur ou entrer un nom d\'invité');
+            return;
+        }
+
+        setCreating(true);
+        try {
+            await client.post('/admin/reservations', {
+                ...formData,
+                user_id: selectedUser?.id,
+                nombre_tickets: parseInt(formData.nombre_tickets),
+                prix: parseFloat(formData.prix)
+            });
+            Alert.alert('Succès', 'Réservation créée avec succès');
+            setCreateModalVisible(false);
+            fetchReservations();
+            // Reset form
+            setSelectedUser(null);
+            setUserSearchText('');
+        } catch (e) {
+            const msg = e.response?.data?.message || 'Erreur lors de la création';
+            Alert.alert('Erreur', msg);
+        } finally {
+            setCreating(false);
+        }
+    };
+
     const fetchReservations = async (search = searchQuery) => {
         try {
             const params = search ? { search } : {};
@@ -60,6 +181,10 @@ const AdminReservationScreen = ({ navigation }) => {
         }, 500);
         return () => clearTimeout(delayDebounceFn);
     }, [searchQuery]);
+
+    useEffect(() => {
+        fetchStations();
+    }, []);
 
     const toggleSelection = (id) => {
         setSelectedIds(prev => {
@@ -180,13 +305,24 @@ const AdminReservationScreen = ({ navigation }) => {
                                 style={{ marginRight: 12 }}
                             />
                         )}
-                        <Text style={styles.clientName} numberOfLines={1}>
-                            {item.user?.name || item.client?.nom || 'Client Inconnu'}
-                        </Text>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.clientName} numberOfLines={1}>
+                                {item.user?.name || item.guest_name || 'Client Inconnu'}
+                            </Text>
+                            {item.user?.unique_id && (
+                                <Text style={{ fontSize: 11, color: Colors.secondary, fontFamily: 'Poppins_600SemiBold' }}>
+                                    ID: {item.user.unique_id}
+                                </Text>
+                            )}
+                        </View>
                     </View>
                     <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.statut) + '20' }]}>
                         <Text style={[styles.statusText, { color: getStatusColor(item.statut) }]}>
-                            {item.statut === 'en_attente' ? 'À VENIR' : item.statut === 'en_trajet' ? 'EN TRAJET' : item.statut}
+                            {item.statut === 'en_attente' ? 'À VENIR' :
+                                item.statut === 'en_trajet' ? 'EN TRAJET' :
+                                    item.statut === 'confirme' ? 'CONFIRMÉE' :
+                                        item.statut === 'termine' ? 'TERMINÉE' :
+                                            item.statut === 'annule' ? 'ANNULÉE' : item.statut}
                         </Text>
                     </View>
                 </View>
@@ -330,6 +466,262 @@ const AdminReservationScreen = ({ navigation }) => {
                 </View>
             )}
 
+            {!selectionMode && (
+                <TouchableOpacity
+                    style={styles.fab}
+                    onPress={() => setCreateModalVisible(true)}
+                >
+                    <Ionicons name="add" size={30} color="#FFF" />
+                </TouchableOpacity>
+            )}
+
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={createModalVisible}
+                onRequestClose={() => setCreateModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <KeyboardAvoidingView
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        style={[styles.modalContent, { height: '90%' }]}
+                    >
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Nouvelle Réservation</Text>
+                            <TouchableOpacity onPress={() => setCreateModalVisible(false)}>
+                                <Ionicons name="close" size={28} color={Colors.textLight} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView
+                            contentContainerStyle={styles.form}
+                            keyboardShouldPersistTaps="handled"
+                            showsVerticalScrollIndicator={false}
+                        >
+                            {/* Recherche Utilisateur */}
+                            <View>
+                                <Text style={styles.label}>Rechercher un Client existant</Text>
+                                <View style={styles.searchContainer}>
+                                    <TextInput
+                                        style={[styles.input, { flex: 1 }]}
+                                        placeholder="Nom ou téléphone..."
+                                        value={userSearchText}
+                                        onChangeText={setUserSearchText}
+                                    />
+                                    {userSearchLoading && <ActivityIndicator size="small" color={Colors.secondary} style={{ marginLeft: 15, marginBottom: 10 }} />}
+                                </View>
+
+                                {userSearchResults.length > 0 && (
+                                    <View style={[styles.resultsList, { overflow: 'hidden' }]}>
+                                        <ScrollView
+                                            style={{ maxHeight: 180 }}
+                                            nestedScrollEnabled={true}
+                                            keyboardShouldPersistTaps="handled"
+                                        >
+                                            {userSearchResults.map(u => (
+                                                <TouchableOpacity
+                                                    key={u.id}
+                                                    style={styles.resultItem}
+                                                    onPress={() => {
+                                                        setSelectedUser(u);
+                                                        setUserSearchResults([]);
+                                                        setUserSearchText(u.name);
+                                                    }}
+                                                >
+                                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <View style={{ flex: 1 }}>
+                                                            <Text style={styles.resultText} numberOfLines={1}>{u.name}</Text>
+                                                            <Text style={{ fontSize: 11, color: Colors.secondary, fontFamily: 'Poppins_600SemiBold' }}>ID: {u.unique_id}</Text>
+                                                            <Text style={{ fontSize: 12, color: Colors.textLight }}>{u.tel}</Text>
+                                                        </View>
+                                                        <Ionicons name="person-add" size={20} color={Colors.secondary} />
+                                                    </View>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </ScrollView>
+                                    </View>
+                                )}
+                            </View>
+
+                            {selectedUser ? (
+                                <View style={styles.selectedUserBadge}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                        <Ionicons name="person" size={20} color={Colors.secondary} style={{ marginRight: 10 }} />
+                                        <View>
+                                            <Text style={styles.selectedUserText}>{selectedUser.name}</Text>
+                                            <Text style={{ fontSize: 12, color: Colors.secondary }}>ID: {selectedUser.unique_id}</Text>
+                                            <Text style={{ fontSize: 12, color: Colors.textLight }}>{selectedUser.tel} • Compte lié ✅</Text>
+                                        </View>
+                                    </View>
+                                    <TouchableOpacity onPress={() => { setSelectedUser(null); setUserSearchText(''); }}>
+                                        <Ionicons name="trash-outline" size={20} color={Colors.error} />
+                                    </TouchableOpacity>
+                                </View>
+                            ) : (
+                                <View style={{ marginTop: 10 }}>
+                                    <Text style={styles.label}>OU - Créer pour un nouveau client</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Nom complet du passager"
+                                        value={formData.guest_name}
+                                        onChangeText={(v) => setFormData({ ...formData, guest_name: v })}
+                                    />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Numéro de téléphone"
+                                        value={formData.guest_phone}
+                                        onChangeText={(v) => setFormData({ ...formData, guest_phone: v })}
+                                        keyboardType="phone-pad"
+                                    />
+                                </View>
+                            )}
+
+                            <View style={styles.divider} />
+
+                            <Text style={styles.label}>Détails du Trajet</Text>
+
+                            <Text style={styles.subLabel}>Départ</Text>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pickerContainer}>
+                                {stations.map(item => (
+                                    <TouchableOpacity
+                                        key={'dep' + item.id}
+                                        style={[styles.chip, formData.station_depart_id === item.id && styles.chipActive]}
+                                        onPress={() => {
+                                            if (formData.station_arrivee_id === item.id) {
+                                                Alert.alert('Erreur', 'Le départ ne peut être identique à l\'arrivée');
+                                                return;
+                                            }
+                                            setFormData({ ...formData, station_depart_id: item.id });
+                                        }}
+                                    >
+                                        <Text style={[styles.chipText, formData.station_depart_id === item.id && styles.chipTextActive]}>{item.nom}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+
+                            <Text style={styles.subLabel}>Arrivée</Text>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pickerContainer}>
+                                {stations.map(item => (
+                                    <TouchableOpacity
+                                        key={'arr' + item.id}
+                                        style={[styles.chip, formData.station_arrivee_id === item.id && styles.chipActive]}
+                                        onPress={() => {
+                                            if (formData.station_depart_id === item.id) {
+                                                Alert.alert('Erreur', 'L\'arrivée ne peut être identique au départ');
+                                                return;
+                                            }
+                                            setFormData({ ...formData, station_arrivee_id: item.id });
+                                        }}
+                                    >
+                                        <Text style={[styles.chipText, formData.station_arrivee_id === item.id && styles.chipTextActive]}>{item.nom}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+
+                            <View style={{ flexDirection: 'row', gap: 10 }}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.label}>Date de départ</Text>
+                                    <TouchableOpacity
+                                        style={styles.input}
+                                        onPress={() => setShowDatePicker(true)}
+                                    >
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <Text style={{ color: Colors.text }}>{formData.date_depart}</Text>
+                                            <Ionicons name="calendar-outline" size={20} color={Colors.secondary} />
+                                        </View>
+                                    </TouchableOpacity>
+                                    {showDatePicker && (
+                                        <DateTimePicker
+                                            value={new Date(formData.date_depart)}
+                                            mode="date"
+                                            display="default"
+                                            minimumDate={new Date()}
+                                            onChange={(event, selectedDate) => {
+                                                setShowDatePicker(false);
+                                                if (selectedDate) {
+                                                    setFormData({ ...formData, date_depart: selectedDate.toISOString().split('T')[0] });
+                                                }
+                                            }}
+                                        />
+                                    )}
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.label}>Heure</Text>
+                                    <TouchableOpacity
+                                        style={styles.input}
+                                        onPress={() => setShowTimePicker(true)}
+                                    >
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <Text style={{ color: Colors.text }}>{formData.heure_depart}</Text>
+                                            <Ionicons name="time-outline" size={20} color={Colors.secondary} />
+                                        </View>
+                                    </TouchableOpacity>
+                                    {showTimePicker && (
+                                        <DateTimePicker
+                                            value={(() => {
+                                                const d = new Date();
+                                                const [h, m] = formData.heure_depart.split(':');
+                                                d.setHours(parseInt(h), parseInt(m));
+                                                return d;
+                                            })()}
+                                            mode="time"
+                                            display="default"
+                                            is24Hour={true}
+                                            minuteInterval={15}
+                                            onChange={(event, selectedTime) => {
+                                                setShowTimePicker(false);
+                                                if (selectedTime) {
+                                                    const h = selectedTime.getHours().toString().padStart(2, '0');
+                                                    const m = selectedTime.getMinutes().toString().padStart(2, '0');
+                                                    setFormData({ ...formData, heure_depart: `${h}:${m}` });
+                                                }
+                                            }}
+                                        />
+                                    )}
+                                </View>
+                            </View>
+
+                            <View style={{ flexDirection: 'row', gap: 10 }}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.label}>Tickets</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        value={formData.nombre_tickets}
+                                        onChangeText={(v) => setFormData({ ...formData, nombre_tickets: v })}
+                                        keyboardType="numeric"
+                                    />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.label}>Prix Total (CFA)</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        value={formData.prix}
+                                        onChangeText={(v) => setFormData({ ...formData, prix: v })}
+                                        keyboardType="numeric"
+                                    />
+                                </View>
+                            </View>
+
+                            <Text style={styles.paymentNotice}>
+                                Ce type de paiement est soit fait en espèces soit payé via le service Momo de Nonvi
+                            </Text>
+
+                            <TouchableOpacity
+                                style={[styles.submitBtn, creating && { opacity: 0.7 }]}
+                                onPress={handleCreateReservation}
+                                disabled={creating}
+                            >
+                                {creating ? (
+                                    <ActivityIndicator color="#FFF" />
+                                ) : (
+                                    <Text style={styles.submitBtnText}>Créer la Réservation</Text>
+                                )}
+                            </TouchableOpacity>
+                        </ScrollView>
+                    </KeyboardAvoidingView>
+                </View>
+            </Modal>
+
             <Modal
                 animationType="slide"
                 transparent={true}
@@ -391,7 +783,7 @@ const AdminReservationScreen = ({ navigation }) => {
                     </View>
                 </View>
             </Modal>
-        </View>
+        </View >
     );
 };
 
@@ -629,6 +1021,146 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: Colors.primary,
     },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20
+    },
+    form: {
+        paddingBottom: 40
+    },
+    label: {
+        fontSize: 14,
+        fontFamily: 'Poppins_600SemiBold',
+        color: Colors.primary,
+        marginBottom: 8,
+        marginTop: 15
+    },
+    subLabel: {
+        fontSize: 12,
+        fontFamily: 'Poppins_400Regular',
+        color: Colors.textLight,
+        marginBottom: 5
+    },
+    input: {
+        backgroundColor: Colors.background,
+        borderRadius: 12,
+        padding: 12,
+        fontSize: 14,
+        fontFamily: 'Poppins_400Regular',
+        color: Colors.text,
+        borderWidth: 1,
+        borderColor: Colors.border,
+        marginBottom: 10
+    },
+    searchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center'
+    },
+    resultsList: {
+        backgroundColor: Colors.surface,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: Colors.border,
+        marginBottom: 15,
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        overflow: 'hidden'
+    },
+    resultItem: {
+        padding: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.border
+    },
+    resultText: {
+        fontSize: 14,
+        fontFamily: 'Poppins_400Regular',
+        color: Colors.text
+    },
+    selectedUserBadge: {
+        flexDirection: 'row',
+        backgroundColor: Colors.secondary + '15',
+        padding: 10,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 15
+    },
+    selectedUserText: {
+        color: Colors.secondary,
+        fontFamily: 'Poppins_600SemiBold',
+        fontSize: 14
+    },
+    pickerContainer: {
+        marginBottom: 15
+    },
+    chip: {
+        paddingHorizontal: 15,
+        paddingVertical: 8,
+        borderRadius: 20,
+        backgroundColor: Colors.background,
+        borderWidth: 1,
+        borderColor: Colors.border,
+        marginRight: 8
+    },
+    chipActive: {
+        backgroundColor: Colors.secondary,
+        borderColor: Colors.secondary
+    },
+    chipText: {
+        fontSize: 12,
+        fontFamily: 'Poppins_500Medium',
+        color: Colors.text
+    },
+    chipTextActive: {
+        color: '#FFF'
+    },
+    submitBtn: {
+        backgroundColor: Colors.primary,
+        padding: 18,
+        borderRadius: 16,
+        alignItems: 'center',
+        marginTop: 30
+    },
+    submitBtnText: {
+        color: '#FFF',
+        fontSize: 16,
+        fontFamily: 'Poppins_700Bold'
+    },
+    paymentNotice: {
+        fontSize: 12,
+        color: Colors.textLight,
+        textAlign: 'center',
+        marginTop: 20,
+        paddingHorizontal: 10,
+        fontFamily: 'Poppins_400Regular'
+    },
+    divider: {
+        height: 1,
+        backgroundColor: Colors.border,
+        marginVertical: 20
+    },
+    fab: {
+        position: 'absolute',
+        bottom: 30,
+        right: 20,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: Colors.secondary,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 8,
+        shadowColor: Colors.secondary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+        zIndex: 10,
+    }
 });
 
 export default AdminReservationScreen;

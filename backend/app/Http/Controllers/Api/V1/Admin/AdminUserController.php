@@ -25,6 +25,7 @@ class AdminUserController extends Controller
             $roles = $u->roles->pluck('title')->implode(', ');
             return [
                 $u->id,
+                $u->unique_id,
                 $u->name,
                 $u->tel ?? 'N/A',
                 $u->email,
@@ -35,7 +36,7 @@ class AdminUserController extends Controller
         });
 
         return $this->downloadCsv($data, 'comptes-' . date('Y-m-d'), [
-            'ID', 'Nom', 'Téléphone', 'Email', 'Rôles/Type', 'Points', 'Date Création'
+            'ID', 'ID Unique', 'Nom', 'Téléphone', 'Email', 'Rôles/Type', 'Points', 'Date Création'
         ]);
     }
     public function index(Request $request)
@@ -59,7 +60,8 @@ class AdminUserController extends Controller
             $query->where(function($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('tel', 'like', "%{$search}%");
+                  ->orWhere('tel', 'like', "%{$search}%")
+                  ->orWhere('unique_id', 'like', "%{$search}%");
             });
         }
 

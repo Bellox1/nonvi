@@ -98,7 +98,7 @@ const WelcomeScreen = ({ navigation }) => {
             {/* Logo */}
             <View style={[styles.logoContainer, { paddingTop: Math.max(insets.top, 20) }]}>
                 <Image
-                    source={require('../../assets/app_image.png')}
+                    source={require('../../assets/image_app.png')}
                     style={styles.logo}
                     resizeMode="contain"
                 />
