@@ -1,54 +1,62 @@
-# Nonvi Voyage Plus 🚍
+# 🚍 Nonvi Voyage Plus - La Révolution du Transport au Bénin
 
-**Nonvi Voyage Plus** est une solution complète de gestion de transport de voyageurs au Bénin. Elle comprend une application mobile pour les utilisateurs (réservations, tarifs, horaires) et un backend robuste pour la gestion administrative.
-
-## 🌟 Architecture du Projet
-
-Le projet est divisé en deux parties principales :
-
-1.  **Backend (`/backend`)** : Développé avec **Laravel 11**, il sert d'API et d'interface d'administration.
-2.  **Mobile App (`/expo-mobile`)** : Développée avec **React Native (Expo)**, disponible sur Android et iOS.
+**Nonvi Voyage Plus** est une plateforme digitale complète dédiée à la modernisation du transport de voyageurs. Elle offre une synergie parfaite entre une application mobile intuitive pour les passagers et un puissant panel d'administration pour la supervision globale.
 
 ---
 
-## 🚀 Installation Rapide
+## 📱 Expérience Mobile (Passagers & Agents)
 
-### 1. Cloner le projet
-```bash
-git clone https://github.com/votre-repo/nonvi.git
-cd nonvi
-```
+L'application mobile permet une réservation fluide, un suivi des trajets et une validation instantanée des billets.
 
-### 2. Configuration du Backend
-```bash
-cd backend
-composer install
-cp .env.example .env
-php artisan key:generate
-# Configurez votre base de données dans le .env
-php artisan migrate --seed
-php artisan serve --host=0.0.0.0
-```
-
-### 3. Configuration du Mobile
-```bash
-cd ../expo-mobile
-npm install
-npx expo start
-```
+````carousel
+![Écran d'accueil](Demo/page1.jpeg)
+<!-- slide -->
+![Réservation Passager](Demo/resertion.jpeg)
+<!-- slide -->
+![Paiement Sécurisé](Demo/payement.jpeg)
+<!-- slide -->
+![Scan de Validation](Demo/scan.jpeg)
+<!-- slide -->
+![Historique des Voyages](Demo/history.jpeg)
+````
 
 ---
 
-## 🛠 Technologies Utilisées
+## ⚙️ Administration & Supervision (Pannel Admin)
 
-- **Backend** : Laravel 11, PHP 8.2, MySQL, Twilio (WhatsApp/SMS).
-- **Mobile** : React Native, Expo, React Navigation, Axios.
-- **Design** : Tailwind CSS (Web), Custom Theme (Mobile).
+Le système dispose d'une interface de gestion robuste permettant de piloter l'intégralité de l'activité transport.
+
+````carousel
+![Tableau de Bord Supervision](Demo/a-suprvision.jpeg)
+<!-- slide -->
+![Gestion des Tarifs](Demo/a-tarif.jpeg)
+<!-- slide -->
+![Gestion des Permissions](Demo/a-permition.jpeg)
+<!-- slide -->
+![Réservations Administratives](Demo/a-reserve.jpeg)
+<!-- slide -->
+![Profils & Rôles](Demo/a-pro.jpeg)
+````
 
 ---
 
-## 📧 Contact & Support
-Pour toute question, contactez l'équipe technique à [contact@nonviplus.com](mailto:contact@nonviplus.com) ou via nos réseaux sociaux.
+## ✨ Fonctionnalités Maîtresses
+
+*   **🎫 Billetterie Digitale** : Réservation et achat de billets en ligne avec QR Code unique.
+*   **💳 Paiement Intégré** : Support des solutions de paiement locales et internationales.
+*   **🛡️ Gestion des Permissions** : Système de rôles granulaires pour les agents, chauffeurs et administrateurs.
+*   **📊 Monitoring en Temps Réel** : Suivi des réservations et des revenus via le panel de supervision.
+*   **⏰ Horaires & Tarifs Dynamiques** : Mise à jour instantanée des prix et des trajets depuis l'admin.
 
 ---
-🚀 Développé avec passion pour le transport Béninois.
+
+## 🛠️ Stack Technologique
+
+*   **Backend** : Laravel 11 / API RESTful.
+*   **Mobile** : React Native & Expo (iOS/Android).
+*   **DevOps** : Scanner de QR Code intégré et notifications SMS/WhatsApp via Twilio.
+
+---
+
+## 📄 Licence
+Ce projet est sous licence MIT. Développé par **BELLOX**.
