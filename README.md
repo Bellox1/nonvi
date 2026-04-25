@@ -4,17 +4,29 @@
 
 ---
 
-## 📱 Aperçu Mobile & Admin
+## 📱 Expérience Mobile (Passagers)
 
-| Accueil | Réservation | Paiement | Supervision |
+| Accueil | Réservation | Paiement |
+| :---: | :---: | :---: |
+| ![Accueil](Demo/page1.jpeg) | ![Historique](Demo/resertion.jpeg) | ![Paiement](Demo/payement.jpeg) |
+
+---
+
+## ⚙️ Administration & Supervision (Panel Admin)
+
+### Gestion Stratégique
+| Dashboard | Supervision | Tarifs | Permissions |
 | :---: | :---: | :---: | :---: |
-| ![Accueil](Demo/page1.jpeg) | ![Réservation](Demo/resertion.jpeg) | ![Paiement](Demo/payement.jpeg) | ![Supervision](Demo/a-suprvision.jpeg) |
+| ![Dashboard](Demo/a.jpeg) | ![Supervision](Demo/a-suprvision.jpeg) | ![Tarifs](Demo/a-tarif.jpeg) | ![Permissions](Demo/a-permition.jpeg) |
+
+### Gestion Opérationnelle
+| Réservations | Profils | Scan & Validation |
+| :---: | :---: | :---: |
+| ![Réservations Admin](Demo/a-reserve.jpeg) | ![Profils](Demo/a-pro.jpeg) | ![Scan](Demo/scan.jpeg) |
 
 ---
 
 ## 📸 Galerie Complète
-
-Voici d'autres aperçus de l'application (Vues utilisateurs et administration) :
 
 <p align="center">
   <img src="Demo/2.jpeg" width="18%" />
@@ -22,19 +34,17 @@ Voici d'autres aperçus de l'application (Vues utilisateurs et administration) :
   <img src="Demo/4.jpeg" width="18%" />
   <img src="Demo/5.jpeg" width="18%" />
   <img src="Demo/6.jpeg" width="18%" />
+  <br />
   <img src="Demo/7.jpeg" width="18%" />
-  <img src="Demo/8.jpeg" width="18%" />
   <img src="Demo/9.jpeg" width="18%" />
   <img src="Demo/10.jpeg" width="18%" />
   <img src="Demo/11.jpeg" width="18%" />
   <img src="Demo/12.jpeg" width="18%" />
+  <br />
   <img src="Demo/13.jpeg" width="18%" />
-  <img src="Demo/a-tarif.jpeg" width="18%" />
-  <img src="Demo/a-permition.jpeg" width="18%" />
-  <img src="Demo/a-reserve.jpeg" width="18%" />
-  <img src="Demo/a-pro.jpeg" width="18%" />
-  <img src="Demo/history.jpeg" width="18%" />
-  <img src="Demo/scan.jpeg" width="18%" />
+  <img src="Demo/opt.jpeg" width="18%" />
+  <img src="Demo/validation.jpeg" width="18%" />
+  <img src="Demo/vue1.jpeg" width="18%" />
 </p>
 
 ---
