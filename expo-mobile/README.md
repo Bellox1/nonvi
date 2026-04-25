@@ -1,38 +1,61 @@
-# Nonvi Voyage Plus - Application Mobile (Expo) 📱
+# 📱 Nonvi Mobile - L'Expérience Voyageur (Expo / React Native)
 
-L'application mobile **Nonvi Voyage Plus** permet aux passagers de réserver leurs tickets, de consulter les horaires et de gérer leurs voyages en toute simplicité.
+L'application mobile **Nonvi Voyage Plus** est le compagnon de voyage ultime au Bénin. Conçue pour offrir une fluidité maximale, elle permet aux passagers de gérer leurs déplacements, de la recherche de trajets jusqu'à la validation embarquée par QR Code.
 
-## 🚀 Fonctionnalités
-- **Recherche de Trajets** : Filtrage par ville de départ et d'arrivée.
-- **Réservation en ligne** : Choix des places et validation rapide.
-- **Historique** : Accès à tous les anciens tickets et reçus QR Code.
-- **Profil Utilisateur** : Gestion des informations personnelles et sécurité.
-- **Design Moderne** : Interface fluide et intuitive.
+---
 
-## 🛠 Installation & Développement
+## ✨ Fonctionnalités Utilisateur
 
-1. Accéder au dossier :
-   ```bash
-   cd expo-mobile
-   ```
-2. Installer les dépendances :
-   ```bash
-   npm install
-   ```
-3. Lancer l'application :
-   ```bash
-   npx expo start
-   ```
+*   **🔍 Recherche de Trajets** : Filtres intelligents par date, ville de départ et destination.
+*   **🎫 Ticket Digital (QR Code)** : Plus besoin de papier. Vos billets sont stockés en sécurité et prêts à être scannés.
+*   **💳 Réservation Instantanée** : Choix des places favorites sur le plan du bus et paiement immédiat.
+*   **📜 Historique Complet** : Accès simplifié à tous vos anciens tickets et reçus de paiement.
+*   **🔔 Alertes en Temps Réel** : Notifications Push pour vous informer d'un départ imminent ou d'un changement d'horaire.
 
-## ⚙️ Configuration
-Dans `src/theme/Colors.js`, vous pouvez ajuster l'identité visuelle de l'application (Orange, Marron, Bleu nuit).
-Dans `src/api/config.js` (ou équivalent), assurez-vous que l'URL de l'API pointe vers l'adresse IP de votre serveur backend.
+---
 
-## 📦 Build
-Pour générer l'APK ou le fichier iOS :
+## 🛠️ Stack Technique
+
+*   **Core** : React Native (Expo SDK)
+*   **State Management** : React Context API / Redux Toolkit
+*   **Navigation** : React Navigation (Stack & Tabs)
+*   **Networking** : Axios pour la communication avec le Backend Laravel.
+*   **Utility** : Expo BarCodeScanner pour la validation des agents.
+
+---
+
+## 🚀 Installation & Développement
+
+### 1. Prérequis
+Vous devez avoir **Node.js LTS** et **npm** installés sur votre machine.
+
+### 2. Installation
 ```bash
+# Accéder au dossier mobile
+cd expo-mobile
+
+# Installer les packages
+npm install
+```
+
+### 3. Lancement
+```bash
+# Lancer le serveur de développement Expo
+npx expo start
+```
+*Scannez le QR Code affiché dans votre terminal avec l'application **Expo Go** (Android/iOS).*
+
+---
+
+## 🏗️ Build & Déploiement
+
+Pour générer des fichiers installables (APK/IPA) :
+```bash
+# Créer un build de preview (Android)
 eas build --platform android --profile preview
 ```
 
 ---
-Développé avec **React Native & Expo**.
+
+## 📄 Licence
+Ce projet est sous licence MIT. Développé par **BELLOX**.
