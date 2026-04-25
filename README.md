@@ -4,39 +4,38 @@
 
 ---
 
-## 📱 Expérience Mobile (Passagers & Agents)
+## 📱 Aperçu Mobile & Admin
 
-L'application mobile permet une réservation fluide, un suivi des trajets et une validation instantanée des billets.
-
-````carousel
-![Écran d'accueil](Demo/page1.jpeg)
-<!-- slide -->
-![Réservation Passager](Demo/resertion.jpeg)
-<!-- slide -->
-![Paiement Sécurisé](Demo/payement.jpeg)
-<!-- slide -->
-![Scan de Validation](Demo/scan.jpeg)
-<!-- slide -->
-![Historique des Voyages](Demo/history.jpeg)
-````
+| Accueil | Réservation | Paiement | Supervision |
+| :---: | :---: | :---: | :---: |
+| ![Accueil](Demo/page1.jpeg) | ![Réservation](Demo/resertion.jpeg) | ![Paiement](Demo/payement.jpeg) | ![Supervision](Demo/a-suprvision.jpeg) |
 
 ---
 
-## ⚙️ Administration & Supervision (Pannel Admin)
+## 📸 Galerie Complète
 
-Le système dispose d'une interface de gestion robuste permettant de piloter l'intégralité de l'activité transport.
+Voici d'autres aperçus de l'application (Vues utilisateurs et administration) :
 
-````carousel
-![Tableau de Bord Supervision](Demo/a-suprvision.jpeg)
-<!-- slide -->
-![Gestion des Tarifs](Demo/a-tarif.jpeg)
-<!-- slide -->
-![Gestion des Permissions](Demo/a-permition.jpeg)
-<!-- slide -->
-![Réservations Administratives](Demo/a-reserve.jpeg)
-<!-- slide -->
-![Profils & Rôles](Demo/a-pro.jpeg)
-````
+<p align="center">
+  <img src="Demo/2.jpeg" width="18%" />
+  <img src="Demo/3.jpeg" width="18%" />
+  <img src="Demo/4.jpeg" width="18%" />
+  <img src="Demo/5.jpeg" width="18%" />
+  <img src="Demo/6.jpeg" width="18%" />
+  <img src="Demo/7.jpeg" width="18%" />
+  <img src="Demo/8.jpeg" width="18%" />
+  <img src="Demo/9.jpeg" width="18%" />
+  <img src="Demo/10.jpeg" width="18%" />
+  <img src="Demo/11.jpeg" width="18%" />
+  <img src="Demo/12.jpeg" width="18%" />
+  <img src="Demo/13.jpeg" width="18%" />
+  <img src="Demo/a-tarif.jpeg" width="18%" />
+  <img src="Demo/a-permition.jpeg" width="18%" />
+  <img src="Demo/a-reserve.jpeg" width="18%" />
+  <img src="Demo/a-pro.jpeg" width="18%" />
+  <img src="Demo/history.jpeg" width="18%" />
+  <img src="Demo/scan.jpeg" width="18%" />
+</p>
 
 ---
 
@@ -50,11 +49,11 @@ Le système dispose d'une interface de gestion robuste permettant de piloter l'i
 
 ---
 
-## 🛠️ Stack Technologique
+## 🛠️ Stack Technique
 
 *   **Backend** : Laravel 11 / API RESTful.
 *   **Mobile** : React Native & Expo (iOS/Android).
-*   **DevOps** : Scanner de QR Code intégré et notifications SMS/WhatsApp via Twilio.
+*   **Architecture** : Système modulaire avec supervision admin centralisée.
 
 ---
 
